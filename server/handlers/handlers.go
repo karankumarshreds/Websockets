@@ -34,7 +34,7 @@ func (h *Handlers) NewWebsocketConnection(w http.ResponseWriter, r *http.Request
 		return 
 	}
 	log.Println(userid, connection)
+	
 }
 
-func  
 

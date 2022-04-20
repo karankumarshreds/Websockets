@@ -1,23 +1,23 @@
 package core
 
-import (
-	"github.com/gorilla/websocket"
-)
+import "private-chat/events"
 
-type Client struct {
-	Hub    *Hub
-	Socket *websocket.Conn
-	Send   string
-	UserId string
+// Standard structure of how the payload will look like
+type EventPayload struct {
+	EventName    events.EventName `json:"eventName"`
+	EventPayload interface{} `json:"eventPayload"`
 }
 
-type Hub struct {
-	Clients 		map[*Client]bool
-	Register 		chan *Client 
-	Unregister 	chan *Client
+// Payload structure for new user event
+type NewUserPayload struct {
+	Username string `json:"username"`
+	UserId   string `json:"userId"`
 }
 
-type SocketEventStructure struct {
-	EventName 		string `json:"eventName"`
-	EventPayload 	string `json:"eventPayload"`
+// Payload structure for direct message event
+type DirectMessagePayload struct {
+	Sender   string `json:"sender"`
+	Receiver string `json:"receiver"`
+	Message  string `json:"message"`
+	Time     string `json:"time"`
 }
