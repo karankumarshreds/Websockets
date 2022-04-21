@@ -53,6 +53,8 @@ func (c *Client) readPump() {
 			newUserHandler(payload.EventPayload.(core.NewUserPayload))
 		case events.DIRECT_MESSAGE:
 			directMessageHandler(payload.EventPayload.(core.DirectMessagePayload))
+		case events.DISCONNECT:
+			disconnectHandler(payload.EventPayload.(core.DisconnectPayload))
 		}
 	} // end of for loop 
 	
@@ -63,6 +65,9 @@ func newUserHandler(payload core.NewUserPayload) {
 }
 func directMessageHandler(payload core.DirectMessagePayload) {
 	log.Printf("There is a direct message for %v by %v", payload.Receiver, payload.Receiver)
+}
+func disconnectHandler(payload core.DisconnectPayload) {
+	log.Println("The user : %v has disconnected", payload.Username)
 }
 
 

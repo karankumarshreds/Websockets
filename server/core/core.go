@@ -21,3 +21,9 @@ type DirectMessagePayload struct {
 	Message  string `json:"message"`
 	Time     string `json:"time"`
 }
+
+// Payload structure for disconnect event 
+type DisconnectPayload struct {
+	Username string `json:"username"`
+	UserId string `json:"userId"`
+}
