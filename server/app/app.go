@@ -9,7 +9,6 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
-	""
 )
 
 type App struct {}
@@ -28,7 +27,7 @@ func (a *App) InitRoutes() {
 	r := mux.NewRouter()
 
 	r.HandleFunc("/", h.HomeHandler).Methods("GET")
-	r.HandleFunc("/ws/{userid}",)
+	r.HandleFunc("/ws/{userid}", h.NewWebsocketConnection)
 
 	log.Printf("Server starting at %v", os.Getenv("PORT"))
 	http.ListenAndServe(fmt.Sprintf(":%v", os.Getenv("PORT")), r)

@@ -3,7 +3,9 @@ package handlers
 import (
 	"log"
 	"net/http"
+	"private-chat/core"
 	"private-chat/middlewares"
+	"private-chat/services"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -26,6 +28,7 @@ func (h *Handlers) HomeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) NewWebsocketConnection(w http.ResponseWriter, r *http.Request) {
+	hub    := services.NewHub()
 	userid := mux.Vars(r)["userid"]
 	// upgrade the http request to websocket connection 
 	connection, err := upgrader.Upgrade(w, r, nil)
@@ -34,7 +37,16 @@ func (h *Handlers) NewWebsocketConnection(w http.ResponseWriter, r *http.Request
 		return 
 	}
 	log.Println(userid, connection)
-	
+	// Creating a new user struct
+	client := &services.Client{
+		UserId: userid,
+		Hub: hub,
+		Conn: connection,
+		Send: make(chan core.EventPayload),
+	}
+	go client.ReadPump()
+	// Registering the user to the hub
+	client.Hub.Register <- client 
 }
 
 
