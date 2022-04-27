@@ -15,6 +15,7 @@ type Client struct {
 	Conn *websocket.Conn
 	Send chan core.EventPayload
 	UserId string
+	Username string 
 }
 
 const (
@@ -29,6 +30,7 @@ func NewClientService() *Client{
 }
 
 // Pumps messages from the websocket to the hub.
+// Hub will only do one thing and that is register the user to the hub
 // This application ensures that there is at most one reader per connection 
 // running as a goroutine.
 func (c *Client) ReadPump() {
@@ -65,27 +67,33 @@ func (c *Client) ReadPump() {
 	
 }
 
-func (c *Client) newUserHandler(payload core.NewUserPayload) {
+func (c *Client) newUserHandler(newUserPayload core.NewUserPayload) {
 	// TODO Check if the user is logged in and if not don't do anything (just logged out user tried to create a conn)
 	// Register the client 
 	// Broadcast the connected users with the new user who has joined with the payload  
-	log.Println("The new user has joined w/ username = ", payload.Username)
+	log.Println("The new user has joined w/ username = ", newUserPayload.Username)
 	// For new user send the chat list of all online users (except the user)
-	// for client := range c.Hub.Clients {
-	// 	if client.UserId != payload.UserId {
-	// 		select {
-	// 		case client.Send <- core.EventPayload{
-	// 				EventName: events.NEW_USER,
-	// 				EventPayload: payload,
-	// 		}:
-	// 		default: 
-				
-	// 		}
-			
-	// 	}
-	// }
+	var onlineUsers []core.NewUserPayload = []core.NewUserPayload{}
+	for c := range c.Hub.Clients {
+		onlineUsers = append(onlineUsers, core.NewUserPayload{Username: c.Username, UserId: c.UserId})
+	}
 
+	// Response sent to all the users except the joined user  
+	response := core.EventPayload{
+		EventName: events.NEW_USER,
+		EventPayload: onlineUsers,
+	}
+
+	for client := range c.Hub.Clients {
+		select {
+		case client.Send <- response:
+		default:
+			close(client.Send)
+			delete(c.Hub.Clients, client)
+		}
+	}
 }
+
 func directMessageHandler(payload core.DirectMessagePayload) {
 	log.Printf("There is a direct message for %v by %v", payload.Receiver, payload.Receiver)
 }

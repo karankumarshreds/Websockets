@@ -28,6 +28,7 @@ func (a *App) InitRoutes() {
 
 	r.HandleFunc("/", h.HomeHandler).Methods("GET")
 	r.HandleFunc("/ws/{userid}", h.NewWebsocketConnection)
+	
 
 	log.Printf("Server starting at %v", os.Getenv("PORT"))
 	http.ListenAndServe(fmt.Sprintf(":%v", os.Getenv("PORT")), r)

@@ -30,6 +30,7 @@ func (h *Handlers) HomeHandler(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) NewWebsocketConnection(w http.ResponseWriter, r *http.Request) {
 	hub    := services.NewHub()
 	userid := mux.Vars(r)["userid"]
+	username := mux.Vars(r)["username"]
 	// upgrade the http request to websocket connection 
 	connection, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -40,11 +41,14 @@ func (h *Handlers) NewWebsocketConnection(w http.ResponseWriter, r *http.Request
 	// Creating a new user struct
 	client := &services.Client{
 		UserId: userid,
+		Username: username,
 		Hub: hub,
 		Conn: connection,
 		Send: make(chan core.EventPayload),
 	}
 	go client.ReadPump()
+	// go client.WritePump()
+	
 	// Registering the user to the hub
 	client.Hub.Register <- client 
 }
