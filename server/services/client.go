@@ -59,7 +59,7 @@ func (c *Client) ReadPump() {
 		case events.NEW_USER:
 			c.newUserHandler(payload.EventPayload.(core.NewUserPayload))
 		case events.DIRECT_MESSAGE:
-			directMessageHandler(payload.EventPayload.(core.DirectMessagePayload))
+			c.directMessageHandler(payload.EventPayload.(core.DirectMessagePayload))
 		case events.DISCONNECT:
 			disconnectHandler(payload.EventPayload.(core.DisconnectPayload))
 		}
@@ -94,8 +94,22 @@ func (c *Client) newUserHandler(newUserPayload core.NewUserPayload) {
 	}
 }
 
-func directMessageHandler(payload core.DirectMessagePayload) {
-	log.Printf("There is a direct message for %v by %v", payload.Receiver, payload.Receiver)
+func (c *Client) directMessageHandler(directMessagePayload core.DirectMessagePayload) {
+	// Extract out the UserId from payload to which the message needs to be sent 
+	receiver := directMessagePayload.Receiver
+	response := core.DirectMessageResponse{
+		Sender: c.Username,
+		Message: directMessagePayload.Message,
+		Time: time.Now().String(),
+	}
+	// Loop over the hub clients and send the message to the specific user 	
+	for c := range c.Hub.Clients {
+		if c.UserId == receiver {
+			c.Send <- core.EventPayload{EventName: events.DIRECT_MESSAGE, EventPayload: response}
+			break
+		}
+	}
+	log.Printf("There is a direct message for %v by %v", directMessagePayload.Receiver, directMessagePayload.Receiver)
 }
 func disconnectHandler(payload core.DisconnectPayload) {
 	log.Println("The user : %v has disconnected", payload.Username)
