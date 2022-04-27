@@ -103,16 +103,22 @@ func (c *Client) directMessageHandler(directMessagePayload core.DirectMessagePay
 		Time: time.Now().String(),
 	}
 	// Loop over the hub clients and send the message to the specific user 	
-	for c := range c.Hub.Clients {
-		if c.UserId == receiver {
-			c.Send <- core.EventPayload{EventName: events.DIRECT_MESSAGE, EventPayload: response}
+	for client := range c.Hub.Clients {
+		if client.UserId == receiver {
+			client.Send <- core.EventPayload{EventName: events.DIRECT_MESSAGE, EventPayload: response}
 			break
 		}
 	}
 	log.Printf("There is a direct message for %v by %v", directMessagePayload.Receiver, directMessagePayload.Receiver)
 }
-func disconnectHandler(payload core.DisconnectPayload) {
-	log.Println("The user : %v has disconnected", payload.Username)
+
+func (c *Client) disconnectHandler(disconnectedUserPayload core.DisconnectPayload) {
+	c.Hub.Unregister <- c
+	// Broadcast all users with disconnected user list 
+	for client := range c.Hub.Clients {
+		client.Send <- core.EventPayload{EventName: events.DELETED_USER, EventPayload: disconnectedUserPayload.UserId}	
+	}
+	log.Println("The user : %v has disconnected", disconnectedUserPayload.Username)
 }
 
 // Pumps message from the hub to the websocket connection  
