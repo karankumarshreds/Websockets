@@ -1,6 +1,7 @@
 package services
 
 import (
+	"fmt"
 	"log"
 	"private-chat/core"
 	"private-chat/events"
@@ -19,10 +20,14 @@ type Client struct {
 }
 
 const (
+	// Time allowed to write a message to the peer.
+	writeWait = 10 * time.Second
 	// Maximum message size allowed from peer 
 	maxMessageSize = 1024  
 	// Time allowed to read the message from the peer 
 	readTimeout = time.Second * 60
+	// Send pings to peer with this period. Must be less than pongWait (taking 90% of readTimeout)
+	pingPeriod = (readTimeout * 9) / 10
 )
 
 func NewClientService() *Client{
@@ -42,7 +47,7 @@ func (c *Client) ReadPump() {
 	}()
 
 	c.Conn.SetReadLimit(maxMessageSize)
-	c.Conn.SetReadDeadline(time.Now().Add(readTimeout)) // message will not be read 60 seconds after recieving 
+	c.Conn.SetReadDeadline(time.Now().Add(readTimeout)) // message will not be read 60 seconds after recieving/processing 
 	// send the message to the client (ping) to get a response (pong) and update the deadline if the pong is recieved 
 	c.Conn.SetPongHandler(func(string) error { c.Conn.SetReadDeadline(time.Now().Add(readTimeout)); return nil })
 	
@@ -61,7 +66,7 @@ func (c *Client) ReadPump() {
 		case events.DIRECT_MESSAGE:
 			c.directMessageHandler(payload.EventPayload.(core.DirectMessagePayload))
 		case events.DISCONNECT:
-			disconnectHandler(payload.EventPayload.(core.DisconnectPayload))
+			c.disconnectHandler(payload.EventPayload.(core.DisconnectPayload))
 		}
 	} // end of for loop 
 	
@@ -118,8 +123,34 @@ func (c *Client) disconnectHandler(disconnectedUserPayload core.DisconnectPayloa
 	for client := range c.Hub.Clients {
 		client.Send <- core.EventPayload{EventName: events.DELETED_USER, EventPayload: disconnectedUserPayload.UserId}	
 	}
-	log.Println("The user : %v has disconnected", disconnectedUserPayload.Username)
+	log.Printf("The user : %v has disconnected", disconnectedUserPayload.Username)
 }
 
 // Pumps message from the hub to the websocket connection  
-func (c *Client) writePump() {}
+func (c *Client) WritePump() {
+	ticker := time.NewTicker(pingPeriod)
+	defer func() {
+			ticker.Stop()
+			c.Conn.Close()
+	}()
+	for {
+		select {
+		case message, ok := <- c.Send:
+			// Setting a deadline to write this message to the websocket 
+			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if !ok {
+				// Assuming the hub closed the channel 
+				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
+				
+			}
+			fmt.Println("Message writing to the client", message)
+		case <- ticker.C:
+			// Setting a deadline to write this message to the websocket 
+			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+			// Time to send another ping message (for which also, we've put a deadline above)
+			if err := c.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				return
+			}
+		}
+	}
+}	
