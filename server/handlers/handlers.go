@@ -47,7 +47,7 @@ func (h *Handlers) NewWebsocketConnection(w http.ResponseWriter, r *http.Request
 		Send: make(chan core.EventPayload),
 	}
 	go client.ReadPump()
-	// go client.WritePump()
+	go client.WritePump()
 	
 	// Registering the user to the hub
 	client.Hub.Register <- client 
