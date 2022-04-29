@@ -11,19 +11,19 @@ export const eventEmitter = new events.EventEmitter();
 export const newSocketConnection = (userId) => {
   if (!window['WebSocket']) {
     return {
-      message: 'The browser does not support websockets.',
+      error: 'The browser does not support websockets.',
       webSocketConnection: null,
     };
   }
   if (!userId) {
     return {
-      message: 'UserId is required to establish connection.',
+      error: 'UserId is required to establish connection.',
       webSocketConnection: null,
     };
   }
   webSocketConnection = new WebSocket(`ws://${CHAT_SERVER_ENDPOINT}/ws/${userId}`);
   return {
-    message: 'Connected to the websocket server successfully.',
+    error: null,
     webSocketConnection,
   };
 };
