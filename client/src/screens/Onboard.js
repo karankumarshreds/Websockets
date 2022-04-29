@@ -1,16 +1,18 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { newSocketConnection } from 'config/socket';
 
 const INPUT_STYLE = { padding: '10px', fontSize: 16, marginTop: 10 };
 
-const Landing = () => {
+const Landing = (props) => {
   const [userDetails, setUserDetails] = React.useState({
     username: '',
     userId: '',
   });
 
-  const submitHandler = (e) => {
+  const useSubmitHandler = (e) => {
     e.preventDefault();
+
     if (!userDetails.userId || !userDetails.username) return;
     const { webSocketConnection, error } = newSocketConnection(userDetails.userId);
     if (error) alert(error);
@@ -20,7 +22,7 @@ const Landing = () => {
   return (
     <div style={{ width: 600, margin: 'auto' }}>
       <h1>Enter your details</h1>
-      <form onSubmit={submitHandler} style={{ display: 'flex', flexDirection: 'column' }}>
+      <form onSubmit={useSubmitHandler} style={{ display: 'flex', flexDirection: 'column' }}>
         <input
           placeholder="username"
           value={userDetails.username}
@@ -34,7 +36,7 @@ const Landing = () => {
           style={INPUT_STYLE}
         />
         <button type={'submit'} style={INPUT_STYLE}>
-          SUBMIT
+          <Link to={'/123/karan'}>SUBMIT</Link>
         </button>
       </form>
     </div>
