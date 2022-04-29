@@ -1,10 +1,13 @@
 import React from 'react';
+import { Routes, Route } from 'react-router-dom';
+// screens
+import Landing from 'screens/Landing';
 
 const App = () => {
   return (
-    <div>
-      <h1>Go chat!</h1>
-    </div>
+    <Routes>
+      <Route path="/" element={<Landing />} />
+    </Routes>
   );
 };
 
