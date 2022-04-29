@@ -1,42 +1,39 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { newSocketConnection } from 'config/socket';
-
-const INPUT_STYLE = { padding: '10px', fontSize: 16, marginTop: 10 };
+import { useNavigate } from 'react-router-dom';
+import Input from 'components/Input';
 
 const Landing = (props) => {
   const [userDetails, setUserDetails] = React.useState({
     username: '',
     userId: '',
   });
+  const navigate = useNavigate();
 
-  const useSubmitHandler = (e) => {
+  const submitHandler = (e) => {
     e.preventDefault();
-
-    if (!userDetails.userId || !userDetails.username) return;
-    const { webSocketConnection, error } = newSocketConnection(userDetails.userId);
-    if (error) alert(error);
-    else console.log({ webSocketConnection });
+    if (userDetails.userId && userDetails.username) {
+      navigate(`/${userDetails.userId}/${userDetails.username}`);
+    }
   };
 
   return (
-    <div style={{ width: 600, margin: 'auto' }}>
+    <div style={{ width: 600, margin: 'auto', marginTop: 100 }} className="container">
       <h1>Enter your details</h1>
-      <form onSubmit={useSubmitHandler} style={{ display: 'flex', flexDirection: 'column' }}>
-        <input
-          placeholder="username"
+      <form onSubmit={submitHandler} style={{ display: 'flex', flexDirection: 'column' }}>
+        <Input
+          className="form-control my-2"
+          placeholder="Username"
           value={userDetails.username}
           onChange={(e) => setUserDetails((state) => ({ ...state, username: e.target.value }))}
-          style={INPUT_STYLE}
         />
-        <input
-          placeholder="userid"
+        <Input
+          placeholder="Userid"
+          className="form-control my-2"
           value={userDetails.userId}
           onChange={(e) => setUserDetails((state) => ({ ...state, userId: e.target.value }))}
-          style={INPUT_STYLE}
         />
-        <button type={'submit'} style={INPUT_STYLE}>
-          <Link to={'/123/karan'}>SUBMIT</Link>
+        <button type={'submit'} className="btn btn-primary">
+          SUBMIT
         </button>
       </form>
     </div>
