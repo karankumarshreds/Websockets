@@ -6,10 +6,12 @@ import Onboard from 'screens/Onboard';
 
 const App = () => {
   return (
-    <Routes>
-      <Route path="/" element={<Onboard />} />
-      <Route path="/:userid/:username" element={<Message />} />
-    </Routes>
+    <div style={{ marginTop: 100 }}>
+      <Routes>
+        <Route path="/" element={<Onboard />} />
+        <Route path="/:userid/:username" element={<Message />} />
+      </Routes>
+    </div>
   );
 };
 

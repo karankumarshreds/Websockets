@@ -17,7 +17,7 @@ const Landing = (props) => {
   };
 
   return (
-    <div style={{ width: 600, margin: 'auto', marginTop: 100 }} className="container">
+    <div style={{ width: 600, margin: 'auto' }} className="container">
       <h1>Enter your details</h1>
       <form onSubmit={submitHandler} style={{ display: 'flex', flexDirection: 'column' }}>
         <Input

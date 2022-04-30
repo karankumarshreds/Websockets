@@ -14,9 +14,14 @@ const Message = () => {
   }, []);
 
   return (
-    <div className="container">
+    <div className="container" style={{ width: 600, margin: 'auto' }}>
       <h1>Message Screen</h1>
       <Input placeholder="Enter your message" />
+      <div class="d-grid">
+        <button className="btn btn-primary" type="button">
+          Send Message
+        </button>
+      </div>
     </div>
   );
 };
