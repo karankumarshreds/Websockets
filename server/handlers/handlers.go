@@ -28,7 +28,8 @@ func (h *Handlers) HomeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) NewWebsocketConnection(w http.ResponseWriter, r *http.Request) {
-	hub    := services.NewHub()
+	hub := services.NewHub()
+	go hub.Run()
 	userid := mux.Vars(r)["userid"]
 	username := mux.Vars(r)["username"]
 	// upgrade the http request to websocket connection 
@@ -46,11 +47,13 @@ func (h *Handlers) NewWebsocketConnection(w http.ResponseWriter, r *http.Request
 		Conn: connection,
 		Send: make(chan core.EventPayload),
 	}
+
+	// Registering the user to the hub
+	client.Hub.Register <- client 
+
 	go client.ReadPump()
 	go client.WritePump()
 	
-	// Registering the user to the hub
-	client.Hub.Register <- client 
 }
 
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
-import { newSocketConnection } from 'config/socket';
+import { Socket } from 'config/socket';
 import Input from 'components/Input';
 
 const Message = () => {
@@ -8,7 +8,7 @@ const Message = () => {
 
   React.useEffect(() => {
     if (!userid || !username) return;
-    const { webSocketConnection, error } = newSocketConnection(userid);
+    const { webSocketConnection, error } = new Socket(userid);
     if (error) alert(error);
     else console.log({ webSocketConnection });
   }, []);

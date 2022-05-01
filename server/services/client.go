@@ -1,6 +1,8 @@
 package services
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"log"
 	"private-chat/core"
@@ -57,6 +59,9 @@ func (c *Client) ReadPump() {
 		if err := c.Conn.ReadJSON(&payload); err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Println("Unexpected error : ", err)
+				break
+			} else {
+				log.Println("Error connection broken by client", err)
 				break
 			}
 		}
@@ -136,14 +141,24 @@ func (c *Client) WritePump() {
 	for {
 		select {
 		case message, ok := <- c.Send:
+			log.Println("Got event name", message.EventName)
 			// Setting a deadline to write this message to the websocket 
 			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
 				// Assuming the hub closed the channel 
 				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
-				
 			}
-			fmt.Println("Message writing to the client", message)
+			if w, err := c.Conn.NextWriter(websocket.TextMessage); err != nil {
+				return 
+			} else {
+				reqBodyBytes := new(bytes.Buffer)
+				if encodeErr := json.NewEncoder(reqBodyBytes).Encode(message); encodeErr != nil {
+					return 
+				} else {
+					fmt.Println("Message writing to the client", message)
+					w.Write(reqBodyBytes.Bytes())
+				}
+			}
 		case <- ticker.C:
 			// Setting a deadline to write this message to the websocket 
 			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
