@@ -1,7 +1,6 @@
 package services
 
 import (
-	"bytes"
 	"encoding/json"
 	"log"
 	"private-chat/core"
@@ -86,6 +85,8 @@ func (c *Client) ReadPump() {
 	
 }
 
+
+// NOT TO BE USED NOW AS THIS LOGIC IS HANDLED BY HUB REGISTER 
 func (c *Client) newUserHandler(newUserPayload core.NewUserPayload) {
 	// TODO Check if the user is logged in and if not don't do anything (just logged out user tried to create a conn)
 	// Register the client 
@@ -151,24 +152,31 @@ func (c *Client) WritePump() {
 		select {
 		case message, ok := <- c.Send:
 			// every message will have an eventName attached to it 
-			log.Println("writePump: writing to the client", message)
+			log.Println("writePump: writing to the client", message.EventPayload)
 			// Setting a deadline to write this message to the websocket 
 			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
 				// Assuming the hub closed the channel 
 				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
 			}
-			if w, err := c.Conn.NextWriter(websocket.TextMessage); err != nil {
-				return 
+
+			if err := c.Conn.WriteJSON(message); err == nil {
+				log.Println("WritePump(): message write to client successful", message)	
 			} else {
-				reqBodyBytes := new(bytes.Buffer)
-				if encodeErr := json.NewEncoder(reqBodyBytes).Encode(message); encodeErr != nil {
-					return 
-				} else {
-					log.Println("Message writing to the client", message)
-					w.Write(reqBodyBytes.Bytes())
-				}
-			}
+				log.Println("WritePump(): ERROR Could not write message to client => ", err)
+				return 
+			} 
+			// if w, err := c.Conn.NextWriter(websocket.TextMessage); err != nil {
+			// 	return 
+			// } else {
+			// 	reqBodyBytes := new(bytes.Buffer)
+			// 	if encodeErr := json.NewEncoder(reqBodyBytes).Encode(message); encodeErr != nil {
+			// 		return 
+			// 	} else {
+			// 		log.Println("Message writing to the client", message)
+			// 		w.Write(reqBodyBytes.Bytes())
+			// 	}
+			// }
 		case <- ticker.C:
 			// Setting a deadline to write this message to the websocket 
 			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
