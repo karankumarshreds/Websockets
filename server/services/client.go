@@ -3,7 +3,6 @@ package services
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"log"
 	"private-chat/core"
 	"private-chat/events"
@@ -27,7 +26,7 @@ const (
 	// Maximum message size allowed from peer 
 	maxMessageSize = 1024  
 	// Time allowed to read the message from the peer 
-	readTimeout = time.Second * 60
+	readTimeout = time.Second * 10
 	// Send pings to peer with this period. Must be less than pongWait (taking 90% of readTimeout)
 	pingPeriod = (readTimeout * 9) / 10
 )
@@ -53,8 +52,8 @@ func (c *Client) ReadPump() {
 	// send the message to the client (ping) to get a response (pong) and update the deadline if the pong is recieved 
 	c.Conn.SetPongHandler(func(string) error { c.Conn.SetReadDeadline(time.Now().Add(readTimeout)); return nil })
 	
+	// listen for any incoming message from the websocket connection 
 	for { // infinite for loop
-		// listen for any incoming message from the websocket connection 
 		var payload core.EventPayload
 		if err := c.Conn.ReadJSON(&payload); err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
@@ -65,9 +64,19 @@ func (c *Client) ReadPump() {
 				break
 			}
 		}
+		// Your interface value holds a map, you can't convert that to a struct. 
+		// Use json.RawMessage when unmarshaling, and when you know what type you need, 
+		// do a second unmarshaling into that type. You may put this logic into an 
+		// UmarshalJSON() function to make it automatic. 
 		switch payload.EventName {
 		case events.NEW_USER:
-			c.newUserHandler(payload.EventPayload.(core.NewUserPayload))
+			var eventPayload core.NewUserPayload
+			// converting map[string]interface{} EventPayload to []bytes so that we convert it later to struct 
+			data, _ := json.Marshal(payload.EventPayload)
+			json.Unmarshal(data, &eventPayload)
+			// data := (payload.EventPayload).(json.RawMessage)
+			c.newUserHandler(eventPayload)
+			// c.newUserHandler(payload.EventPayload.(core.NewUserPayload))
 		case events.DIRECT_MESSAGE:
 			c.directMessageHandler(payload.EventPayload.(core.DirectMessagePayload))
 		case events.DISCONNECT:
@@ -82,13 +91,13 @@ func (c *Client) newUserHandler(newUserPayload core.NewUserPayload) {
 	// Register the client 
 	// Broadcast the connected users with the new user who has joined with the payload  
 	log.Println("The new user has joined w/ username = ", newUserPayload.Username)
-	// For new user send the chat list of all online users (except the user)
 	var onlineUsers []core.NewUserPayload = []core.NewUserPayload{}
 	for c := range c.Hub.Clients {
 		onlineUsers = append(onlineUsers, core.NewUserPayload{Username: c.Username, UserId: c.UserId})
 	}
+	log.Println("Latest updated list of all the users", onlineUsers)
 
-	// Response sent to all the users except the joined user  
+	// Response sent to all the users
 	response := core.EventPayload{
 		EventName: events.NEW_USER,
 		EventPayload: onlineUsers,
@@ -141,7 +150,8 @@ func (c *Client) WritePump() {
 	for {
 		select {
 		case message, ok := <- c.Send:
-			log.Println("Got event name", message.EventName)
+			// every message will have an eventName attached to it 
+			log.Println("writePump: writing to the client", message)
 			// Setting a deadline to write this message to the websocket 
 			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
@@ -155,7 +165,7 @@ func (c *Client) WritePump() {
 				if encodeErr := json.NewEncoder(reqBodyBytes).Encode(message); encodeErr != nil {
 					return 
 				} else {
-					fmt.Println("Message writing to the client", message)
+					log.Println("Message writing to the client", message)
 					w.Write(reqBodyBytes.Bytes())
 				}
 			}

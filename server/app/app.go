@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"private-chat/handlers"
+	"private-chat/services"
 
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
@@ -23,11 +24,13 @@ func (a *App) Run () {
 }
 
 func (a *App) InitRoutes() {
-	h := handlers.NewHandlers()
+	// creating a hub for all the users 
+	hub := services.NewHub()
+	h := handlers.NewHandlers(hub)
 	r := mux.NewRouter()
 
 	r.HandleFunc("/", h.HomeHandler).Methods("GET")
-	r.HandleFunc("/ws/{userid}", h.NewWebsocketConnection)
+	r.HandleFunc("/ws/{userid}/{username}", h.NewWebsocketConnection)
 
 	log.Printf("Server starting at %v", os.Getenv("PORT"))
 	http.ListenAndServe(fmt.Sprintf(":%v", os.Getenv("PORT")), r)

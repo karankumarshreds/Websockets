@@ -11,7 +11,9 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type Handlers struct {}
+type Handlers struct {
+	hub *services.Hub
+}
 
 var upgrader websocket.Upgrader = websocket.Upgrader{
 		ReadBufferSize	: 	1024,
@@ -19,8 +21,8 @@ var upgrader websocket.Upgrader = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {return true},
 }
 
-func NewHandlers() *Handlers {
-	return &Handlers{}
+func NewHandlers(hub *services.Hub) *Handlers {
+	return &Handlers{hub}
 }
 
 func (h *Handlers) HomeHandler(w http.ResponseWriter, r *http.Request) {
@@ -28,8 +30,7 @@ func (h *Handlers) HomeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) NewWebsocketConnection(w http.ResponseWriter, r *http.Request) {
-	hub := services.NewHub()
-	go hub.Run()
+	go h.hub.Run()
 	userid := mux.Vars(r)["userid"]
 	username := mux.Vars(r)["username"]
 	// upgrade the http request to websocket connection 
@@ -43,7 +44,7 @@ func (h *Handlers) NewWebsocketConnection(w http.ResponseWriter, r *http.Request
 	client := &services.Client{
 		UserId: userid,
 		Username: username,
-		Hub: hub,
+		Hub: h.hub,
 		Conn: connection,
 		Send: make(chan core.EventPayload),
 	}

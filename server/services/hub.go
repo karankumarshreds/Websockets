@@ -1,6 +1,8 @@
 package services
 
-import "log"
+import (
+	"log"
+)
 
 type Hub struct {
 	Clients    map[*Client]bool
@@ -21,13 +23,9 @@ func (h *Hub) Run() {
 	for { // infinite loop
 		select {
 		case client := <-h.Register:
-			log.Println("Registering user with userid", client.UserId)
+			log.Println("Registering user with userid", client.UserId, "and username", client.Username)
 			h.Clients[client] = true
-			onlineUsers := []string{}
-			for c := range h.Clients {
-				onlineUsers = append(onlineUsers, c.UserId)
-			}
-			log.Println("List of online users", onlineUsers)
+			// onlineUsers := []string{}
 		case client := <-h.Unregister:
 			if _, ok := h.Clients[client]; ok {
 				delete(h.Clients, client)
