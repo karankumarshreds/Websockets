@@ -38,6 +38,7 @@ export class Socket {
       const { eventName, eventPayload } = JSON.parse(event.data);
       switch (eventName) {
         case EVENT_NAMES.NEW_USER:
+          eventEmitter.emit(EVENT_NAMES.NEW_USER, eventPayload);
           console.log('NEW USER HAS JOINED', eventPayload);
         case EVENT_NAMES.DELETED_USER:
           console.log('USER HAS DISCONNECTED', eventPayload);
