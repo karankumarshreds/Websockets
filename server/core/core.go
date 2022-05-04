@@ -28,7 +28,7 @@ type DisconnectPayload struct {
 	UserId string `json:"userId"`
 }
 
-// Response Payload structure for direct message
+// "Response" Payload structure for direct message
 type DirectMessageResponse struct {
 	Message string `json:"message"`
 	Sender string `json:"sender"`

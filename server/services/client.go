@@ -117,6 +117,7 @@ func (c *Client) newUserHandler(newUserPayload core.NewUserPayload) {
 func (c *Client) directMessageHandler(directMessagePayload core.DirectMessagePayload) {
 	// Extract out the UserId from payload to which the message needs to be sent 
 	receiver := directMessagePayload.Receiver
+	// creating response for the receiver 
 	response := core.DirectMessageResponse{
 		Sender: c.Username,
 		Message: directMessagePayload.Message,
