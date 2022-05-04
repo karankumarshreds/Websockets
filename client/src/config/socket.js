@@ -11,70 +11,53 @@ export const eventEmitter = new events.EventEmitter();
 
 export class Socket {
   webSocketConnection = null;
+  error = null;
 
-  constructor(userId) {
+  constructor(userId, username) {
     if (!window || !window['WebSocket']) {
-      return {
-        error: 'The browser does not support websockets',
-        webSocketConnection: null,
-      };
+      this.error = 'The browser does not support websockets';
+      this.webSocketConnection = null;
     }
     if (!userId) {
-      return {
-        error: 'UserId is required to establish connection',
-        webSocketConnection: null,
-      };
+      this.error = 'UserId is required to establish connection';
+      this.webSocketConnection = null;
     }
-
-    this.webSocketConnection = new WebSocket(`ws://${CHAT_SERVER_ENDPOINT}/ws/${userId}`);
-    return {
-      error: null,
-      webSocketConnection: this.webSocketConnection,
-    };
+    // creating a new socket connection with the username and the password
+    this.webSocketConnection = new WebSocket(`ws://${CHAT_SERVER_ENDPOINT}/ws/${userId}/${username}`);
+    this.error = null;
   }
+
+  listen = () => {
+    if (!this.webSocketConnection) return;
+
+    this.webSocketConnection.onclose = () => {
+      eventEmitter.emit(EVENT_NAMES.DISCONNECT);
+    };
+
+    this.webSocketConnection.onmessage = (event) => {
+      const { eventName, eventPayload } = JSON.parse(event.data);
+      switch (eventName) {
+        case EVENT_NAMES.NEW_USER:
+          console.log('NEW USER HAS JOINED', eventPayload);
+        case EVENT_NAMES.DELETED_USER:
+          console.log('USER HAS DISCONNECTED', eventPayload);
+        case EVENT_NAMES.DIRECT_MESSAGE:
+          console.log('A DIRECT MESSAGE RECEIVED', eventPayload);
+        default:
+          return;
+      }
+    };
+  };
+
   sendDirectMessage = (payload) => {
     if (!this.webSocketConnection) return;
     this.webSocketConnection.send(
       JSON.stringify({
         eventName: EVENT_NAMES.DIRECT_MESSAGE,
-        payload,
+        eventPayload: payload,
       })
     );
   };
 }
 
-// export const newSocketConnection = (userId) => {
-//   if (!window['WebSocket']) {
-//     return {
-//       error: 'The browser does not support websockets.',
-//       webSocketConnection: null,
-//     };
-//   }
-//   if (!userId) {
-//     return {
-//       error: 'UserId is required to establish connection.',
-//       webSocketConnection: null,
-//     };
-//   }
-//   webSocketConnection = new WebSocket(`ws://${CHAT_SERVER_ENDPOINT}/ws/${userId}`);
-//   return {
-//     error: null,
-//     webSocketConnection,
-//   };
-// };
-
-// export const sendDirectMessage = (payload) => {
-//   if (!webSocketConnection) return;
-//   webSocketConnection.send(
-//     JSON.stringify({
-//       eventName: EVENT_NAMES.DIRECT_MESSAGE,
-//       payload: payload,
-//     })
-//   );
-// };
-
 export const emitLogoutEvent = () => {};
-
-// export const listenToSocketEvents = () => {
-//   if (!webSocketConnection) return;
-// };

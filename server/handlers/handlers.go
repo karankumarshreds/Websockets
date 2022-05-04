@@ -39,6 +39,7 @@ func (h *Handlers) NewWebsocketConnection(w http.ResponseWriter, r *http.Request
 		log.Println("Cannot upgrade the http request to websocket", err)
 		return 
 	}
+	
 	log.Println("Creating a new websocket connection for user", userid)
 	// Creating a new user struct
 	client := &services.Client{

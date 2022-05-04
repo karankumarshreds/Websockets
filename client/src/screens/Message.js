@@ -8,9 +8,11 @@ const Message = () => {
 
   React.useEffect(() => {
     if (!userid || !username) return;
-    const { webSocketConnection, error } = new Socket(userid);
-    if (error) alert(error);
-    else console.log({ webSocketConnection });
+    const socket = new Socket(userid, username);
+
+    if (socket.error) return alert(socket.error);
+    else console.log({ webSocketConnection: socket.webSocketConnection });
+    socket.listen();
   }, []);
 
   return (
