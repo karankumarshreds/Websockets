@@ -77,7 +77,11 @@ func (c *Client) ReadPump() {
 			c.newUserHandler(eventPayload)
 			// c.newUserHandler(payload.EventPayload.(core.NewUserPayload))
 		case events.DIRECT_MESSAGE:
-			c.directMessageHandler(payload.EventPayload.(core.DirectMessagePayload))
+			var directMessagePayload core.DirectMessagePayload
+			// converting map[string]interface{} EventPayload to []bytes so that we convert it later to struct 
+			data, _ := json.Marshal(payload.EventPayload)
+			json.Unmarshal(data, &directMessagePayload)
+			c.directMessageHandler(directMessagePayload))
 		case events.DISCONNECT:
 			c.disconnectHandler(payload.EventPayload.(core.DisconnectPayload))
 		}
