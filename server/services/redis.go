@@ -56,6 +56,14 @@ func (r *RedisService) SetUserRedis(userid string, username string, socket *webs
 		}
 	}
 	log.Println("Successfully set the data for the user in redis map!")
+
+	// Temporary code below 
+	log.Println("Getting the data for the user to see if it was set properly")
+	u := r.GetUserRedis(userid)
+	log.Println("Got the the user data as", u)
+	if err := u.Socket.WriteJSON([]byte("Successfully registerd")); err != nil {
+		log.Println("WAIT WHAT??", err)
+	}
 }
 
 func (r *RedisService) GetUserRedis(userid string) UserNode {
@@ -66,7 +74,7 @@ func (r *RedisService) GetUserRedis(userid string) UserNode {
 	if result, err := r.rdb.Get(userid).Result(); err != nil {
 		log.Println("ERR: Unable to get the value from redis for userid ", userid, err)
 	} else {
-		if unmarshalErr := json.Unmarshal([]byte(result), userNode); unmarshalErr != nil {
+		if unmarshalErr := json.Unmarshal([]byte(result), &userNode); unmarshalErr != nil {
 			log.Println("ERR: Unable to unmarshal user data from redis db", unmarshalErr)
 		}
 	}
