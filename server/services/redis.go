@@ -37,7 +37,21 @@ func NewRedisService(rdb *redis.Client) *RedisService {
 
 
 func (r *RedisService) SaveMessageRedis() {
-
+	// A -><- B 
+	// B -><- C  
+	// get all the conversations for b (with the latest message in each of the conversation)
+	/**
+	{
+		B = [C, A] // b has chatted with C and A 
+		// so the possible combinations to check from redis 
+		-> B.C | C.B 
+		-> B.A | A.B 
+		A.B = [latest message]
+		B.C = [latest message]
+		A.C = [latest message] 
+		-> get all the conversations with their latest message as preview for the user B 
+	}
+	**/
 }
 
 func (r *RedisService) GetAllChats(forUserId string) {
