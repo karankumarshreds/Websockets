@@ -22,31 +22,43 @@ import (
 	 [receiver.sender]: {
 		 [chunk1]: [ ...10 messages ]
 	 }
- }
+
 ************************************/
 
 type RedisService struct {
 	rdb *redis.Client
 }
 
+type UserNode struct {
+		Username string
+		Socket *websocket.Conn
+}
+
 func NewRedisService(rdb *redis.Client) *RedisService {
-	// create an empty map for the user data 
 	type UserNode struct {
 		Username string
 		Socket *websocket.Conn
 	}
 	d := make(map[string]UserNode)
-	if usersDataDefault, marshalErr := json.Marshal(d); marshalErr != nil {
-		log.Fatal("Unable to marshal initial user data to save in redis", marshalErr)
-		return nil 
+	if result, getErr := rdb.Get(USERS_DATA).Result(); getErr != nil {
+		log.Println("Unable to check initial user data in redis")
+		return nil
+	} else if result == "{}" {
+		log.Println("The map already exists as with the default value of {}")
 	} else {
-		if err := rdb.Set(USERS_DATA, usersDataDefault, 0).Err(); err != nil {
-		log.Fatal("Unable to create an intial user data in redis", err)
-		return nil 
-	} else {
-		result, _ := rdb.Get(USERS_DATA).Result()
-		log.Println("Successfully created initial user data in redis", result)
-	}
+		// set default values as NONE  
+		if usersDataDefault, marshalErr := json.Marshal(d); marshalErr != nil {
+			log.Fatal("Unable to marshal initial user data to save in redis", marshalErr)
+			return nil 
+		} else {
+				if err := rdb.Set(USERS_DATA, usersDataDefault, 0).Err(); err != nil {
+				log.Fatal("Unable to create an intial user data in redis", err)
+				return nil 
+			} else {
+				result, _ := rdb.Get(USERS_DATA).Result()
+				log.Println("Successfully created initial user data in redis", result)
+			}
+		}
 	}
 	// TODO create an empty map for the chat data
 	return &RedisService{rdb}
