@@ -1,7 +1,6 @@
 package services
 
 import (
-	"fmt"
 	"log"
 	"private-chat/core"
 	"private-chat/events"
@@ -27,13 +26,9 @@ func NewHub(rdb *redis.Client) *Hub {
 
 // Run acts like an interface between the readPump and writePump and updates Hub map
 func (h *Hub) Run() {
-	rs := NewRedisService(h.rdb)
 	for { // infinite loop
 		select {
 		case client := <-h.Register:
-
-			// first thing we do is register the user in the redis map 
-			rs.SetUserRedis(fmt.Sprint(client.UserId), client.Username, client.Conn)
 
 			log.Println("Registering user with userid", client.UserId, "and username", client.Username)
 			h.Clients[client] = true
