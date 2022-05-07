@@ -34,8 +34,6 @@ type UserNode struct {
 		Socket *websocket.Conn
 }
 
-type UserData map[string]UserNode
-
 func NewRedisService(rdb *redis.Client) *RedisService {
 	return &RedisService{rdb}
 }
@@ -58,6 +56,21 @@ func (r *RedisService) SetUserRedis(userid string, username string, socket *webs
 		}
 	}
 	log.Println("Successfully set the data for the user in redis map!")
+}
+
+func (r *RedisService) GetUserRedis(userid string) UserNode {
+	log.Printf("Getting the user with userId %v", userid)
+	var userNode UserNode
+
+	// get the data from the redis database using key of userid 
+	if result, err := r.rdb.Get(userid).Result(); err != nil {
+		log.Println("ERR: Unable to get the value from redis for userid ", userid, err)
+	} else {
+		if unmarshalErr := json.Unmarshal([]byte(result), userNode); unmarshalErr != nil {
+			log.Println("ERR: Unable to unmarshal user data from redis db", unmarshalErr)
+		}
+	}
+	return userNode
 }
 
 func (r *RedisService) RemoveUserRedis() {
