@@ -26,9 +26,12 @@ func NewHub(rdb *redis.Client) *Hub {
 
 // Run acts like an interface between the readPump and writePump and updates Hub map
 func (h *Hub) Run() {
+	rs := NewRedisService(h.rdb)
 	for { // infinite loop
 		select {
 		case client := <-h.Register:
+			// first thing we do is register the user in the redis map \
+			rs.SetUserRedis(client.Username)
 			log.Println("Registering user with userid", client.UserId, "and username", client.Username)
 			h.Clients[client] = true
 

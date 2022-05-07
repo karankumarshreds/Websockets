@@ -1,6 +1,11 @@
 package services
 
-import "github.com/go-redis/redis"
+import (
+	"log"
+
+	"github.com/go-redis/redis"
+	"github.com/gorilla/websocket"
+)
 
 /************************************
  -> user data
@@ -25,11 +30,25 @@ type RedisService struct {
 
 func NewRedisService(rdb *redis.Client) *RedisService {
 	// create an empty map for the user data 
-	// create an empty map for the chat data 
+	type UserNode struct {
+		Username string
+		Socket *websocket.Conn
+	}
+	usersDataDefault := make(map[string]UserNode)
+	if err := rdb.Set(USERS_DATA, usersDataDefault, 0).Err(); err != nil {
+		log.Fatal("Unable to create an intial user data in redis", err)
+		return nil 
+	} else {
+		result, _ := rdb.Get(USERS_DATA).Result()
+		log.Println("Successfully created initial user data in redis", result)
+	}
+
+	// TODO create an empty map for the chat data
 	return &RedisService{rdb}
 }
 
-func (r *RedisService) SetUserRedis() {
+func (r *RedisService) SetUserRedis(username string) {
+	log.Printf("The user with the username %v will be set in redis!", username)
 	// get the entire map from redis 
 	// create a copy of the entire map 
 	// add a key value for the new user 

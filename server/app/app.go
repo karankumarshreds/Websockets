@@ -24,11 +24,23 @@ func (a *App) Run () {
 	a.InitRoutes()
 }
 
+type RedisConfig struct {
+	host string 
+	port int 
+	password string 
+}
+
 func (a *App) InitRoutes() {
 	// creating a hub for all the users 
-	hub := services.NewHub()
+	rdb := a.InitRedis(RedisConfig{
+		host: "localhost",
+		port: 6379, 
+		password: "",
+	})
+	hub := services.NewHub(rdb)
 	h := handlers.NewHandlers(hub)
 	r := mux.NewRouter()
+
 
 	r.HandleFunc("/", h.HomeHandler).Methods("GET")
 	r.HandleFunc("/ws/{userid}/{username}", h.NewWebsocketConnection)
@@ -38,17 +50,12 @@ func (a *App) InitRoutes() {
 }
 
 
-func (a *App) InitRedis(options struct { 
-	host string 
-	port int 
-	password string 
-	} ) *redis.Client {
+func (a *App) InitRedis(options RedisConfig) *redis.Client {
 	rdb := redis.NewClient(&redis.Options{
 		Addr: fmt.Sprint(options.host + fmt.Sprint(options.port)),
 		DB: 0, // using default db 
 		Password: options.password,
 	})
-	rdb.Set()
 	return rdb
 }
 
