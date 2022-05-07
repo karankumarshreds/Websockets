@@ -1,6 +1,7 @@
 package services
 
 import (
+	"encoding/json"
 	"log"
 
 	"github.com/go-redis/redis"
@@ -34,15 +35,19 @@ func NewRedisService(rdb *redis.Client) *RedisService {
 		Username string
 		Socket *websocket.Conn
 	}
-	usersDataDefault := make(map[string]UserNode)
-	if err := rdb.Set(USERS_DATA, usersDataDefault, 0).Err(); err != nil {
+	d := make(map[string]UserNode)
+	if usersDataDefault, marshalErr := json.Marshal(d); marshalErr != nil {
+		log.Fatal("Unable to marshal initial user data to save in redis", marshalErr)
+		return nil 
+	} else {
+		if err := rdb.Set(USERS_DATA, usersDataDefault, 0).Err(); err != nil {
 		log.Fatal("Unable to create an intial user data in redis", err)
 		return nil 
 	} else {
 		result, _ := rdb.Get(USERS_DATA).Result()
 		log.Println("Successfully created initial user data in redis", result)
 	}
-
+	}
 	// TODO create an empty map for the chat data
 	return &RedisService{rdb}
 }

@@ -52,7 +52,7 @@ func (a *App) InitRoutes() {
 
 func (a *App) InitRedis(options RedisConfig) *redis.Client {
 	rdb := redis.NewClient(&redis.Options{
-		Addr: fmt.Sprint(options.host + fmt.Sprint(options.port)),
+		Addr: fmt.Sprint(options.host + ":" + fmt.Sprint(options.port)),
 		DB: 0, // using default db 
 		Password: options.password,
 	})
