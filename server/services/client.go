@@ -7,6 +7,7 @@ import (
 	"private-chat/events"
 	"time"
 
+	"github.com/go-redis/redis"
 	"github.com/gorilla/websocket"
 )
 
@@ -17,6 +18,7 @@ type Client struct {
 	Send chan core.EventPayload
 	UserId string
 	Username string 
+	rdb *redis.Client
 }
 
 const (
@@ -30,8 +32,8 @@ const (
 	pingPeriod = (readTimeout * 9) / 10
 )
 
-func NewClientService() *Client{
-	return &Client{}
+func NewClientService(rdb *redis.Client) *Client{
+	return &Client{rdb: rdb}
 }
 
 // Pumps messages from the websocket to the hub.
@@ -81,7 +83,7 @@ func (c *Client) ReadPump() {
 			// converting map[string]interface{} EventPayload to []bytes so that we convert it later to struct 
 			data, _ := json.Marshal(payload.EventPayload)
 			json.Unmarshal(data, &directMessagePayload)
-			c.directMessageHandler(directMessagePayload))
+			c.directMessageHandler(directMessagePayload)
 		case events.DISCONNECT:
 			c.disconnectHandler(payload.EventPayload.(core.DisconnectPayload))
 		}

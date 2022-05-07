@@ -4,19 +4,23 @@ import (
 	"log"
 	"private-chat/core"
 	"private-chat/events"
+
+	"github.com/go-redis/redis"
 )
 
 type Hub struct {
 	Clients    map[*Client]bool
 	Register   chan *Client
 	Unregister chan *Client
+	rdb *redis.Client
 }
 
-func NewHub() *Hub {
+func NewHub(rdb *redis.Client) *Hub {
 	return &Hub{
 		Clients:    map[*Client]bool{},
 		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
+		rdb: rdb,
 	}
 }
 

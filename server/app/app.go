@@ -8,6 +8,7 @@ import (
 	"private-chat/handlers"
 	"private-chat/services"
 
+	"github.com/go-redis/redis"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 )
@@ -34,5 +35,20 @@ func (a *App) InitRoutes() {
 
 	log.Printf("Server starting at %v", os.Getenv("PORT"))
 	http.ListenAndServe(fmt.Sprintf(":%v", os.Getenv("PORT")), r)
+}
+
+
+func (a *App) InitRedis(options struct { 
+	host string 
+	port int 
+	password string 
+	} ) *redis.Client {
+	rdb := redis.NewClient(&redis.Options{
+		Addr: fmt.Sprint(options.host + fmt.Sprint(options.port)),
+		DB: 0, // using default db 
+		Password: options.password,
+	})
+	rdb.Set()
+	return rdb
 }
 
