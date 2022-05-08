@@ -1,6 +1,8 @@
 package services
 
 import (
+	"private-chat/core"
+
 	"github.com/go-redis/redis"
 	"github.com/gorilla/websocket"
 )
@@ -36,21 +38,18 @@ func NewRedisService(rdb *redis.Client) *RedisService {
 }
 
 
-func (r *RedisService) SaveMessageRedis() {
-	// A -><- B 
-	// B -><- C  
-	// get all the conversations for b (with the latest message in each of the conversation)
+func (r *RedisService) SaveMessageRedisToChat(message core.DirectMessagePayload) {
 	/**
-	{
-		B = [C, A] // b has chatted with C and A 
-		// so the possible combinations to check from redis 
-		-> B.C | C.B 
-		-> B.A | A.B 
-		A.B = [latest message]
-		B.C = [latest message]
-		A.C = [latest message] 
-		-> get all the conversations with their latest message as preview for the user B 
-	}
+		-> create LSET for both the sender and the receiver 
+		-> suppose the message is from A-> B 
+		-> eg: LSET a_chats [B] and b_chats [A, C, D]
+		-> create another LSET for the saving the chat data 
+		-> eg: LSET "A.B" (the smaller uid will come first) [{},{},{}]
+		-> while getting the all the chats for the user (say B)
+		-> we LGET b_chats and create all combinations of chats:
+		-> B.A, B.C, B.D (smaller uid coming before the ".") and once that is done we get
+		-> all the chats using these possible keys 
+		-> whichever of these combinations exists, return them with the latest message (last index)
 	**/
 }
 
