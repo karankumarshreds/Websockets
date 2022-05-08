@@ -62,11 +62,39 @@ func NewRedisService(rdb *redis.Client) *RedisService {
 **/
 
 func (r *RedisService) SaveMessageRedisToChat(message core.DirectMessagePayload) {
-
+	r.CreateChatCombinations(message)
+	r.PushMessageToChatList(message)
 }
 
-func (r *RedisService) GetAllChats(forUserId string) {
+func (r *RedisService) GetAllChatsWithLastMessage(forUserId string) *[]core.DirectMessagePayload {
+	// get the people the user has chatted with using the key <forUserId>_CHATS 
+	chattedWith, err := r.rdb.LRange(fmt.Sprintf("%v_CHATS", forUserId), 0, -1).Result()
+	if err != nil {
+		log.Println("ERROR: Cannot get list of chatted with for user", forUserId)
+		return nil
+	}
+
+	// response chats with last message 
+	var chats []core.DirectMessagePayload
+
+	// check for all the combinations using the same logic using CreateKeyCombination function 
+	for _, user := range chattedWith {
+		key := CreateKeyCombination(user, forUserId)
+		chat, _ := r.rdb.LRange(key, 0, 0).Result()
+		if len(chat) == 1 {
+			var c core.DirectMessagePayload
+			if err := json.Unmarshal([]byte(chat[0]), &c); err != nil {
+				log.Println("ERROR: Unable to unmarshal chat for users combination of ", key)
+				return nil
+			} else {
+				chats = append(chats, c)	
+			}
+		}
+	}
 	
+	// return all the arrays of messages using LRANGE using 0 0 to only include the latest message 
+	log.Println("Got the list of the chats with last messages", chats)
+	return &chats
 }
 
 
@@ -74,22 +102,23 @@ func (r *RedisService) GetChatRedis() {
 
 }
 
-func (r *RedisService) CreateChatCombinations(forUserId string, withUserId string)  {
-	c := fmt.Sprintf("%v_CHATS", forUserId)
+func (r *RedisService) CreateChatCombinations(message core.DirectMessagePayload)  {
+	c := fmt.Sprintf("%v_CHATS", message.Receiver)
 	if list, err  := r.rdb.LRange(c, 0, -1).Result(); err != nil {
 		log.Println("ERROR: Can't read chat combinations from redis for ", c)
 		return 
 	} else {
 		if len(list) == 0 {
-			r.rdb.LPush(c, withUserId)
+			r.rdb.LPush(c, message.Sender)
 		} else {
 			// check if the user exists in the list or not 
-			if !utils.Contains(list, withUserId) {
-				r.rdb.LPush(c, withUserId)
+			if !utils.Contains(list, message.Sender) {
+				r.rdb.LPush(c, message.Sender)
 			}
 		}	
 	}
 }
+
 
 func (r *RedisService) PushMessageToChatList(message core.DirectMessagePayload) {
 	// create combinations based on which userid is smaller 
