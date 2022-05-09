@@ -42,14 +42,15 @@ func (h *Handlers) NewWebsocketConnection(w http.ResponseWriter, r *http.Request
 	}
 	
 	log.Println("Creating a new websocket connection for user", userid)
+	// client := &services.Client{
+	// 	UserId: userid,
+	// 	Username: username,
+	// 	Hub: h.hub,
+	// 	Conn: connection,
+	// 	Send: make(chan core.EventPayload),
+	// }
 	// Creating a new user struct
-	client := &services.Client{
-		UserId: userid,
-		Username: username,
-		Hub: h.hub,
-		Conn: connection,
-		Send: make(chan core.EventPayload),
-	}
+	client := services.NewClientService(h.hub, connection, make(chan core.EventPayload), userid, username, h.redisService)
 
 	// Registering the user to the hub
 	client.Hub.Register <- client 

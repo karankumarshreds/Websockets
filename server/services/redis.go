@@ -62,6 +62,7 @@ func NewRedisService(rdb *redis.Client) *RedisService {
 **/
 
 func (r *RedisService) SaveMessageRedisToChat(message core.DirectMessagePayload) {
+	log.Println("Initiating the chat save process on redis")
 	r.CreateChatCombinations(message)
 	r.PushMessageToChatList(message)
 }
@@ -103,26 +104,35 @@ func (r *RedisService) GetChatRedis() {
 }
 
 func (r *RedisService) CreateChatCombinations(message core.DirectMessagePayload)  {
+	log.Println("CreateChatCombinations(): Creating chat combination for rr and sr")
 	c := fmt.Sprintf("%v_CHATS", message.Receiver)
 	if list, err  := r.rdb.LRange(c, 0, -1).Result(); err != nil {
 		log.Println("ERROR: Can't read chat combinations from redis for ", c)
 		return 
 	} else {
 		if len(list) == 0 {
-			r.rdb.LPush(c, message.Sender)
+			if redisErr := r.rdb.LPush(c, message.Sender).Err(); redisErr != nil {
+				log.Panic("ERROR: A: while pushing combination array", redisErr)
+			}
 		} else {
 			// check if the user exists in the list or not 
 			if !utils.Contains(list, message.Sender) {
-				r.rdb.LPush(c, message.Sender)
+				if redisErr := r.rdb.LPush(c, message.Sender).Err(); redisErr != nil {
+					log.Panic("ERROR: B: while pushing combination array", redisErr)
+				}
 			}
 		}	
+		log.Println("Created chat combinations as ", c)
 	}
+
 }
 
 
 func (r *RedisService) PushMessageToChatList(message core.DirectMessagePayload) {
 	// create combinations based on which userid is smaller 
+	log.Println("PushMessageToChatList(): Pushing the message to the combination key")
 	key := CreateKeyCombination(message.Sender, message.Receiver)
+	log.Println("PushMessageToChatList(): The ss+rr combination key is", key)
 	if messageJson, err  := json.Marshal(message); err != nil {
 		log.Println("ERROR: Unable to marshal the error to push into redis", err)
 		return 
@@ -130,7 +140,8 @@ func (r *RedisService) PushMessageToChatList(message core.DirectMessagePayload) 
 		if redisErr := r.rdb.LPush(key, messageJson).Err(); redisErr != nil {
 			log.Println("ERROR: Unable to marshal the error to push into redis", err)
 			return 
-		}
+		} 
+		log.Println("PushMessageToChatList(): Message successfully saved")
 	}
 }
 

@@ -7,7 +7,6 @@ import (
 	"private-chat/events"
 	"time"
 
-	"github.com/go-redis/redis"
 	"github.com/gorilla/websocket"
 )
 
@@ -18,7 +17,8 @@ type Client struct {
 	Send chan core.EventPayload
 	UserId string
 	Username string 
-	rdb *redis.Client
+	// rdb *redis.Client
+	redisService *RedisService
 }
 
 const (
@@ -32,9 +32,18 @@ const (
 	pingPeriod = (readTimeout * 9) / 10
 )
 
-func NewClientService(rdb *redis.Client) *Client{
-	return &Client{rdb: rdb}
+func NewClientService(
+	Hub *Hub,
+	Conn *websocket.Conn,
+	Send chan core.EventPayload,
+	UserId string,
+	Username string ,
+	redisService *RedisService,
+) *Client{
+	return &Client{ Hub,Conn,Send,UserId,Username,redisService}
 }
+
+
 
 // Pumps messages from the websocket to the hub.
 // Hub will only do one thing and that is register the user to the hub
@@ -132,11 +141,13 @@ func (c *Client) directMessageHandler(directMessagePayload core.DirectMessagePay
 	// Loop over the hub clients and send the message to the specific user 	
 	for client := range c.Hub.Clients {
 		if client.UserId == receiver {
+			// save the chat using redis service 
+			c.redisService.SaveMessageRedisToChat(directMessagePayload)
 			client.Send <- core.EventPayload{EventName: events.DIRECT_MESSAGE, EventPayload: response}
 			break
 		}
 	}
-	log.Printf("There is a direct message for %v by %v", directMessagePayload.Receiver, directMessagePayload.Receiver)
+	log.Printf("There is a direct message for %v by %v", directMessagePayload.Receiver, directMessagePayload.Sender)
 }
 
 func (c *Client) disconnectHandler(disconnectedUserPayload core.DisconnectPayload) {
