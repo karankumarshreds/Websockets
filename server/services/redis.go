@@ -66,11 +66,11 @@ func (r *RedisService) SaveMessageRedisToChat(message core.DirectMessagePayload)
 	r.PushMessageToChatList(message)
 }
 
-func (r *RedisService) GetAllChatsWithLastMessage(forUserId string) *[]core.DirectMessagePayload {
-	// get the people the user has chatted with using the key <forUserId>_CHATS 
-	chattedWith, err := r.rdb.LRange(fmt.Sprintf("%v_CHATS", forUserId), 0, -1).Result()
+func (r *RedisService) GetAllChatsWithLastMessage(receiver string) *[]core.DirectMessagePayload {
+	// get the people the user has chatted with using the key <receiver>_CHATS 
+	chattedWith, err := r.rdb.LRange(fmt.Sprintf("%v_CHATS", receiver), 0, -1).Result()
 	if err != nil {
-		log.Println("ERROR: Cannot get list of chatted with for user", forUserId)
+		log.Println("ERROR: Cannot get list of chatted with for user", receiver)
 		return nil
 	}
 
@@ -79,7 +79,7 @@ func (r *RedisService) GetAllChatsWithLastMessage(forUserId string) *[]core.Dire
 
 	// check for all the combinations using the same logic using CreateKeyCombination function 
 	for _, user := range chattedWith {
-		key := CreateKeyCombination(user, forUserId)
+		key := CreateKeyCombination(user, receiver)
 		chat, _ := r.rdb.LRange(key, 0, 0).Result()
 		if len(chat) == 1 {
 			var c core.DirectMessagePayload

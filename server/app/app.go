@@ -37,13 +37,17 @@ func (a *App) InitRoutes() {
 		port: 6379, 
 		password: "",
 	})
-	hub := services.NewHub(rdb)
-	h := handlers.NewHandlers(hub)
+	
+	hubService    := services.NewHub(rdb)
+	redisService  := services.NewRedisService(rdb)
+
+	h := handlers.NewHandlers(hubService, redisService)
 	r := mux.NewRouter()
 
 
 	r.HandleFunc("/", h.HomeHandler).Methods("GET")
 	r.HandleFunc("/ws/{userid}/{username}", h.NewWebsocketConnection)
+	r.HandleFunc("/get-chats/{userid}", h.GetAllChats).Methods("GET")
 
 	log.Printf("Server starting at %v", os.Getenv("PORT"))
 	http.ListenAndServe(fmt.Sprintf(":%v", os.Getenv("PORT")), r)

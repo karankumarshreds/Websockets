@@ -13,6 +13,7 @@ import (
 
 type Handlers struct {
 	hub *services.Hub
+	redisService *services.RedisService
 }
 
 var upgrader websocket.Upgrader = websocket.Upgrader{
@@ -21,8 +22,8 @@ var upgrader websocket.Upgrader = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {return true},
 }
 
-func NewHandlers(hub *services.Hub) *Handlers {
-	return &Handlers{hub}
+func NewHandlers(hub *services.Hub, redisService *services.RedisService) *Handlers {
+	return &Handlers{hub, redisService}
 }
 
 func (h *Handlers) HomeHandler(w http.ResponseWriter, r *http.Request) {
@@ -58,4 +59,8 @@ func (h *Handlers) NewWebsocketConnection(w http.ResponseWriter, r *http.Request
 	
 }
 
+func (h *Handlers) GetAllChats(w http.ResponseWriter, r *http.Request) {
+	userid := mux.Vars(r)["userid"]
+	h.redisService.GetAllChatsWithLastMessage(userid)
+}
 
