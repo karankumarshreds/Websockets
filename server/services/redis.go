@@ -64,9 +64,9 @@ func (r *RedisService) GetAllChatsWithLastMessage(receiver string) *[]SaveMessag
 				if err := json.Unmarshal([]byte(_c), &c); err != nil {
 					log.Println("ERROR: Unable to unmarshal string to struct", err)
 				} else {
+					log.Println("Appending a message for receiver", c.Message)
 					chats = append(chats, c)	
 				}
-				
 			}
 		}
 	}
