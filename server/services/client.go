@@ -143,16 +143,16 @@ func (c *Client) directMessageHandler(directMessagePayload core.DirectMessagePay
 		if client.UserId == receiver {
 			// save the chat using redis service 
 			_message := SaveMessageArg{
-				sender: struct{username string; userid string}{
+				Sender: struct{Username string; UserId string}{
 					c.getUsername(directMessagePayload.Sender),
 					directMessagePayload.Sender,
 				},
-				receiver: struct{username string; userid string}{
+				Receiver: struct{Username string; UserId string}{
 					c.getUsername(directMessagePayload.Receiver),
 					directMessagePayload.Receiver,
 				},
-				message: directMessagePayload.Message,
-				time: time.Now().String(),
+				Message: directMessagePayload.Message,
+				Time: time.Now().String(),
 			}
 			c.redisService.SaveMessageRedisToChat(_message)
 			client.Send <- core.EventPayload{EventName: events.DIRECT_MESSAGE, EventPayload: response}

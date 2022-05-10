@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"private-chat/core"
 	"private-chat/utils"
 	"strconv"
 
@@ -23,42 +22,23 @@ type UserNode struct {
 }
 
 type SaveMessageArg struct {
-	sender struct{ username string; userid string } 
-	receiver struct { username string; userid string }
-	message string 
-	time string
+	Sender struct{ Username string; UserId string } 
+	Receiver struct { Username string; UserId string }
+	Message string 
+	Time string
 } 
 
 func NewRedisService(rdb *redis.Client) *RedisService {
 	return &RedisService{rdb}
 }
 
-
-/**
-	-> check if the LSET for A or B exists or not 
-	-> if not exists then 
-		-> create LSET for both the sender and the receiver 
-		-> suppose the message is from A-> B 
-		-> eg: LSET a_chats [B] and b_chats [A, C, D]
-	-> else
-	  -> check if the userid in the array exists or not 
-		-> if not then update the array  
-	-> create another LSET for the saving the chat data 
-	-> eg: LSET "A.B" (the smaller uid will come first) [{},{},{}]
-	-> while getting the all the chats for the user (say B)
-	-> we LGET b_chats and create all combinations of chats:
-	-> B.A, B.C, B.D (smaller uid coming before the ".") and once that is done we get
-	-> all the chats using these possible keys 
-	-> whichever of these combinations exists, return them with the latest message (last index)
-**/
-
 func (r *RedisService) SaveMessageRedisToChat(message SaveMessageArg) {
 	log.Println("Initiating the chat save process on redis")
-	r.CreateChatCombinations(message.sender.userid, message.receiver.userid)
+	r.CreateChatCombinations(message.Sender.UserId, message.Receiver.UserId)
 	r.PushMessageToChatList(message)
 }
 
-func (r *RedisService) GetAllChatsWithLastMessage(receiver string) *[]core.DirectMessagePayload {
+func (r *RedisService) GetAllChatsWithLastMessage(receiver string) *[]SaveMessageArg {
 	// get the people the user has chatted with using the key <receiver>_CHATS 
 	chattedWith, err := r.rdb.LRange(fmt.Sprintf("%v_CHATS", receiver), 0, -1).Result()
 	if err != nil {
@@ -67,57 +47,31 @@ func (r *RedisService) GetAllChatsWithLastMessage(receiver string) *[]core.Direc
 	}
 
 	// response chats with last message 
-	var chats []core.DirectMessagePayload
+	var chats []SaveMessageArg
 
 	// check for all the combinations using the same logic using CreateKeyCombination function 
 	for _, user := range chattedWith {
 		key := CreateKeyCombination(user, receiver)
 		chat, _ := r.rdb.LRange(key, 0, 0).Result()
 		if len(chat) == 1 {
-			var c core.DirectMessagePayload
-			if err := json.Unmarshal([]byte(chat[0]), &c); err != nil {
-				log.Println("ERROR: Unable to unmarshal chat for users combination of ", key)
+			var _c json.RawMessage 
+			var c SaveMessageArg
+
+			if err := json.Unmarshal([]byte(chat[0]), &_c); err != nil {
+				log.Println("ERROR: Unable to unmarshal to json raw format", err)
 				return nil
 			} else {
-				chats = append(chats, c)	
-			}
-		}
-	}
-	
-	// return all the arrays of messages using LRANGE using 0 0 to only include the latest message 
-	log.Println("Got the list of the chats with last messages", chats)
-	return &chats
-}
-
- 
-func (r *RedisService) GetChatRedis(receiver string) *[]core.DirectMessagePayload {
-	var	chats []core.DirectMessagePayload
-	// get receiver chats array using <receiver>_CHATS 
-	key := fmt.Sprintf("%v_CHATS", receiver)
-	if chattedWith, err := r.rdb.LRange(key, 0, -1).Result(); err != nil {
-		log.Println("ERROR: Unable to get list of chatted with to create combinations", err)
-		return nil 
-	} else {
-		// create combinations using this chatted with list 
-		for _, userid := range chattedWith {
-			combination := CreateKeyCombination(userid, receiver)
-			if msgs, redisErr := r.rdb.LRange(combination, 0, 0).Result(); redisErr != nil {
-				log.Println("ERROR: Unable tot get messages from redis for the user")
-				return nil 
-			} else {
-				lastMessage := msgs[0]
-				var msg core.DirectMessagePayload
-				if unmarshalErr := json.Unmarshal([]byte(lastMessage), &msg); unmarshalErr != nil {
-					log.Println("Unabele to marshal single error ", unmarshalErr)
-					return nil
+				if err := json.Unmarshal([]byte(_c), &c); err != nil {
+					log.Println("ERROR: Unable to unmarshal string to struct", err)
 				} else {
-					chats = append(chats, msg)
+					chats = append(chats, c)	
 				}
+				
 			}
 		}
-		log.Println("Created chat array with the lates messages as ", chats)
-		
 	}
+	// return all the arrays of messages using LRANGE using 0 0 to only include the latest message 
+	log.Println("Created the final list of the chats with last messages", chats)
 	return &chats
 }
 
@@ -148,9 +102,9 @@ func (r *RedisService) CreateChatCombinations(sender string, receiver string)  {
 func (r *RedisService) PushMessageToChatList(msg SaveMessageArg) {
 	// create combinations based on which userid is smaller 
 	log.Println("PushMessageToChatList(): Pushing the message to the combination key")
-	key := CreateKeyCombination(msg.sender.userid, msg.receiver.userid)
+	key := CreateKeyCombination(msg.Sender.UserId, msg.Receiver.UserId)
 	log.Println("PushMessageToChatList(): The ss+rr combination key is", key)
-	if messageJson, err  := json.Marshal(msg.message); err != nil {
+	if messageJson, err  := json.Marshal(msg); err != nil {
 		log.Println("ERROR: Unable to marshal the error to push into redis", err)
 		return 
 	} else {

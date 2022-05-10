@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"private-chat/core"
@@ -40,17 +41,17 @@ func (h *Handlers) NewWebsocketConnection(w http.ResponseWriter, r *http.Request
 		log.Println("Cannot upgrade the http request to websocket", err)
 		return 
 	}
-	
+
 	log.Println("Creating a new websocket connection for user", userid)
-	// client := &services.Client{
-	// 	UserId: userid,
-	// 	Username: username,
-	// 	Hub: h.hub,
-	// 	Conn: connection,
-	// 	Send: make(chan core.EventPayload),
-	// }
 	// Creating a new user struct
-	client := services.NewClientService(h.hub, connection, make(chan core.EventPayload), userid, username, h.redisService)
+	client := services.NewClientService(
+		h.hub, 
+		connection, 
+		make(chan core.EventPayload), 
+		userid, 
+		username, 
+		h.redisService,
+	)
 
 	// Registering the user to the hub
 	client.Hub.Register <- client 
@@ -62,6 +63,8 @@ func (h *Handlers) NewWebsocketConnection(w http.ResponseWriter, r *http.Request
 
 func (h *Handlers) GetAllChats(w http.ResponseWriter, r *http.Request) {
 	userid := mux.Vars(r)["userid"]
-	h.redisService.GetAllChatsWithLastMessage(userid)
+	response := h.redisService.GetAllChatsWithLastMessage(userid)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }
 
