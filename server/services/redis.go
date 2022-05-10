@@ -98,9 +98,36 @@ func (r *RedisService) GetAllChatsWithLastMessage(receiver string) *[]core.Direc
 	return &chats
 }
 
-
-func (r *RedisService) GetChatRedis() {
-
+ 
+func (r *RedisService) GetChatRedis(receiver string) *[]core.DirectMessagePayload {
+	var	chats []core.DirectMessagePayload
+	// get receiver chats array using <receiver>_CHATS 
+	key := fmt.Sprintf("%v_CHATS", receiver)
+	if chattedWith, err := r.rdb.LRange(key, 0, -1).Result(); err != nil {
+		log.Println("ERROR: Unable to get list of chatted with to create combinations", err)
+		return nil 
+	} else {
+		// create combinations using this chatted with list 
+		for _, userid := range chattedWith {
+			combination := CreateKeyCombination(userid, receiver)
+			if msgs, redisErr := r.rdb.LRange(combination, 0, 0).Result(); redisErr != nil {
+				log.Println("ERROR: Unable tot get messages from redis for the user")
+				return nil 
+			} else {
+				lastMessage := msgs[0]
+				var msg core.DirectMessagePayload
+				if unmarshalErr := json.Unmarshal([]byte(lastMessage), &msg); unmarshalErr != nil {
+					log.Println("Unabele to marshal single error ", unmarshalErr)
+					return nil
+				} else {
+					chats = append(chats, msg)
+				}
+			}
+		}
+		log.Println("Created chat array with the lates messages as ", chats)
+		
+	}
+	return &chats
 }
 
 func (r *RedisService) CreateChatCombinations(message core.DirectMessagePayload)  {
@@ -124,7 +151,6 @@ func (r *RedisService) CreateChatCombinations(message core.DirectMessagePayload)
 		}	
 		log.Println("Created chat combinations as ", c)
 	}
-
 }
 
 
