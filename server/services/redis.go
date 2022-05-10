@@ -54,7 +54,7 @@ func NewRedisService(rdb *redis.Client) *RedisService {
 
 func (r *RedisService) SaveMessageRedisToChat(message SaveMessageArg) {
 	log.Println("Initiating the chat save process on redis")
-	r.CreateChatCombinations(message)
+	r.CreateChatCombinations(message.sender.userid, message.receiver.userid)
 	r.PushMessageToChatList(message)
 }
 
@@ -121,21 +121,21 @@ func (r *RedisService) GetChatRedis(receiver string) *[]core.DirectMessagePayloa
 	return &chats
 }
 
-func (r *RedisService) CreateChatCombinations(message core.DirectMessagePayload)  {
+func (r *RedisService) CreateChatCombinations(sender string, receiver string)  {
 	log.Println("CreateChatCombinations(): Creating chat combination for rr and sr")
-	c := fmt.Sprintf("%v_CHATS", message.Receiver)
+	c := fmt.Sprintf("%v_CHATS", receiver)
 	if list, err  := r.rdb.LRange(c, 0, -1).Result(); err != nil {
 		log.Println("ERROR: Can't read chat combinations from redis for ", c)
 		return 
 	} else {
 		if len(list) == 0 {
-			if redisErr := r.rdb.LPush(c, message.Sender).Err(); redisErr != nil {
+			if redisErr := r.rdb.LPush(c, sender).Err(); redisErr != nil {
 				log.Panic("ERROR: A: while pushing combination array", redisErr)
 			}
 		} else {
 			// check if the user exists in the list or not 
-			if !utils.Contains(list, message.Sender) {
-				if redisErr := r.rdb.LPush(c, message.Sender).Err(); redisErr != nil {
+			if !utils.Contains(list, sender) {
+				if redisErr := r.rdb.LPush(c, sender).Err(); redisErr != nil {
 					log.Panic("ERROR: B: while pushing combination array", redisErr)
 				}
 			}
@@ -145,12 +145,12 @@ func (r *RedisService) CreateChatCombinations(message core.DirectMessagePayload)
 }
 
 
-func (r *RedisService) PushMessageToChatList(message core.DirectMessagePayload) {
+func (r *RedisService) PushMessageToChatList(msg SaveMessageArg) {
 	// create combinations based on which userid is smaller 
 	log.Println("PushMessageToChatList(): Pushing the message to the combination key")
-	key := CreateKeyCombination(message.Sender, message.Receiver)
+	key := CreateKeyCombination(msg.sender.userid, msg.receiver.userid)
 	log.Println("PushMessageToChatList(): The ss+rr combination key is", key)
-	if messageJson, err  := json.Marshal(message); err != nil {
+	if messageJson, err  := json.Marshal(msg.message); err != nil {
 		log.Println("ERROR: Unable to marshal the error to push into redis", err)
 		return 
 	} else {
