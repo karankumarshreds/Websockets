@@ -142,7 +142,19 @@ func (c *Client) directMessageHandler(directMessagePayload core.DirectMessagePay
 	for client := range c.Hub.Clients {
 		if client.UserId == receiver {
 			// save the chat using redis service 
-			c.redisService.SaveMessageRedisToChat(directMessagePayload)
+			_message := SaveMessageArg{
+				sender: struct{username string; userid string}{
+					c.getUsername(directMessagePayload.Sender),
+					directMessagePayload.Sender,
+				},
+				receiver: struct{username string; userid string}{
+					c.getUsername(directMessagePayload.Receiver),
+					directMessagePayload.Receiver,
+				},
+				message: directMessagePayload.Message,
+				time: time.Now().String(),
+			}
+			c.redisService.SaveMessageRedisToChat(_message)
 			client.Send <- core.EventPayload{EventName: events.DIRECT_MESSAGE, EventPayload: response}
 			break
 		}
@@ -205,3 +217,13 @@ func (c *Client) WritePump() {
 		}
 	}
 }	
+
+func (c *Client) getUsername (userid string) string {
+	var username string 
+	for client := range c.Hub.Clients {
+		if client.UserId == userid {
+			username = client.Username
+		}
+	}
+	return username
+}

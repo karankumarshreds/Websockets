@@ -12,22 +12,6 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-/************************************
- -> user data
- {
-	 [userid]: {
-			username: string,
-			socket: websocket,
-	 }
- }
-
- -> chat data
- {
-	 [receiver.sender]: {
-		 [chunk1]: [ ...10 messages ]
-	 }
-
-************************************/
 
 type RedisService struct {
 	rdb *redis.Client
@@ -37,6 +21,13 @@ type UserNode struct {
 		Username string
 		Socket *websocket.Conn
 }
+
+type SaveMessageArg struct {
+	sender struct{ username string; userid string } 
+	receiver struct { username string; userid string }
+	message string 
+	time string
+} 
 
 func NewRedisService(rdb *redis.Client) *RedisService {
 	return &RedisService{rdb}
@@ -61,7 +52,7 @@ func NewRedisService(rdb *redis.Client) *RedisService {
 	-> whichever of these combinations exists, return them with the latest message (last index)
 **/
 
-func (r *RedisService) SaveMessageRedisToChat(message core.DirectMessagePayload) {
+func (r *RedisService) SaveMessageRedisToChat(message SaveMessageArg) {
 	log.Println("Initiating the chat save process on redis")
 	r.CreateChatCombinations(message)
 	r.PushMessageToChatList(message)
