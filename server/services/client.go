@@ -79,14 +79,6 @@ func (c *Client) ReadPump() {
 		// do a second unmarshaling into that type. You may put this logic into an 
 		// UmarshalJSON() function to make it automatic. 
 		switch payload.EventName {
-		case events.NEW_USER:
-			var eventPayload core.NewUserPayload
-			// converting map[string]interface{} EventPayload to []bytes so that we convert it later to struct 
-			data, _ := json.Marshal(payload.EventPayload)
-			json.Unmarshal(data, &eventPayload)
-			// data := (payload.EventPayload).(json.RawMessage)
-			c.newUserHandler(eventPayload)
-			// c.newUserHandler(payload.EventPayload.(core.NewUserPayload))
 		case events.DIRECT_MESSAGE:
 			var directMessagePayload core.DirectMessagePayload
 			// converting map[string]interface{} EventPayload to []bytes so that we convert it later to struct 
@@ -98,35 +90,6 @@ func (c *Client) ReadPump() {
 		}
 	} // end of for loop 
 	
-}
-
-
-// NOT TO BE USED NOW AS THIS LOGIC IS HANDLED BY HUB REGISTER 
-func (c *Client) newUserHandler(newUserPayload core.NewUserPayload) {
-	// TODO Check if the user is logged in and if not don't do anything (just logged out user tried to create a conn)
-	// Register the client 
-	// Broadcast the connected users with the new user who has joined with the payload  
-	log.Println("The new user has joined w/ username = ", newUserPayload.Username)
-	var onlineUsers []core.NewUserPayload = []core.NewUserPayload{}
-	for c := range c.Hub.Clients {
-		onlineUsers = append(onlineUsers, core.NewUserPayload{Username: c.Username, UserId: c.UserId})
-	}
-	log.Println("Latest updated list of all the users", onlineUsers)
-
-	// Response sent to all the users
-	response := core.EventPayload{
-		EventName: events.NEW_USER,
-		EventPayload: onlineUsers,
-	}
-
-	for client := range c.Hub.Clients {
-		select {
-		case client.Send <- response:
-		default:
-			close(client.Send)
-			delete(c.Hub.Clients, client)
-		}
-	}
 }
 
 func (c *Client) directMessageHandler(directMessagePayload core.DirectMessagePayload) {
