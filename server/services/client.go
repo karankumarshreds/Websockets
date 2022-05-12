@@ -84,7 +84,9 @@ func (c *Client) ReadPump() {
 			// converting map[string]interface{} EventPayload to []bytes so that we convert it later to struct 
 			data, _ := json.Marshal(payload.EventPayload)
 			json.Unmarshal(data, &directMessagePayload)
-			c.directMessageHandler(directMessagePayload)
+			if !c.messageBroadcastRequired(directMessagePayload.Receiver) {
+				c.directMessageHandler(directMessagePayload)
+			} 
 		case events.DISCONNECT:
 			c.disconnectHandler(payload.EventPayload.(core.DisconnectPayload))
 		}
@@ -92,6 +94,34 @@ func (c *Client) ReadPump() {
 	
 }
 
+// userid => id of user which is the receiver of the event  
+func (c *Client) messageBroadcastRequired(userid string) bool {
+	// checks if the client(receiver) is there in the local memory hub 
+	for c := range c.Hub.Clients {
+		if c.UserId == userid {
+			return false 
+		}
+	} 
+
+	// if user does not exist locally broadcast the message 
+	
+	
+	/*
+		-> check the connection hub if you have the connection for the user id of the receiver
+		-> if yes:
+			-> will send the message to the receiver as is 
+		-> if no:  
+			-> we will publish the message to the redis server 
+			-> with the message payload  
+	*/
+	return true 
+
+}
+
+
+
+
+/* handler function for the direct message type */
 func (c *Client) directMessageHandler(directMessagePayload core.DirectMessagePayload) {
 	// Extract out the UserId from payload to which the message needs to be sent 
 	receiver := directMessagePayload.Receiver
@@ -125,6 +155,8 @@ func (c *Client) directMessageHandler(directMessagePayload core.DirectMessagePay
 	log.Printf("There is a direct message for %v by %v", directMessagePayload.Receiver, directMessagePayload.Sender)
 }
 
+
+/* handler function for the disconnect type */
 func (c *Client) disconnectHandler(disconnectedUserPayload core.DisconnectPayload) {
 	c.Hub.Unregister <- c
 	// Broadcast all users with disconnected user list 
