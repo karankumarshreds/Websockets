@@ -1,4 +1,6 @@
-export const CHAT_SERVER_ENDPOINT = '127.0.0.1:4444';
+// export const CHAT_SERVER_ENDPOINT = '127.0.0.1:4444';
+export const CHAT_SERVER_ENDPOINT = '127.0.0.1:5555';
+
 export const EVENT_NAMES = Object.freeze({
   NEW_USER: 'NEW_USER',
   DIRECT_MESSAGE: 'DIRECT_MESSAGE',

@@ -21,7 +21,6 @@ type Client struct {
 	redisService *RedisService
 }
 
-
 const (
 	// Time allowed to write a message to the peer.
 	writeWait = 10 * time.Second
