@@ -1,6 +1,5 @@
 import { EVENT_NAMES } from 'config/constants';
 import React from 'react';
-import { eventEmitter } from '../config/socket';
 
 const selectedUserStyle = { fontWeight: 800, fontStyle: 'italic' };
 

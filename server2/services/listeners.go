@@ -27,3 +27,14 @@ func (l *Listener) DirectMessageListener() {
 		}
 	}
 }
+
+func (l *Listener) NewUserListener() {
+	
+}
+
+// move to the beginning shift + i 
+// move to the end of line A 
+// delete word at cursor daw
+// delete word at cursor and edit mode caw 
+// select word at cursor viw
+

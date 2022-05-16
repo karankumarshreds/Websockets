@@ -79,13 +79,13 @@ func (c *Client) ReadPump() {
 		case events.DIRECT_MESSAGE:
 			var directMessagePayload core.DirectMessagePayload
 			c.unmarshalPayload(payload.EventPayload, &directMessagePayload)
-			if !c.messageBroadcastRequired(directMessagePayload.Receiver, string(events.DIRECT_MESSAGE), directMessagePayload) {
+			if !c.MessageBroadcastRequired(directMessagePayload.UserId, string(events.DIRECT_MESSAGE), directMessagePayload) {
 				c.directMessageHandler(directMessagePayload)
 			}
 		case events.DISCONNECT:
 			var disconnectPayload core.DisconnectPayload
 			c.unmarshalPayload(payload.EventPayload, &disconnectPayload)
-			if !c.messageBroadcastRequired(disconnectPayload.UserId, string(events.DISCONNECT), disconnectPayload) {
+			if !c.MessageBroadcastRequired(disconnectPayload.UserId, string(events.DISCONNECT), disconnectPayload) {
 				c.disconnectHandler(disconnectPayload)
 			}
 		}
@@ -93,10 +93,21 @@ func (c *Client) ReadPump() {
 }
 
 // userid => id of user which is the receiver of the event  
-func (c *Client) messageBroadcastRequired(userid string, eventName string, eventPayload interface{}) bool {
+func (c *Client) MessageBroadcastRequired(userid string, eventName string, eventPayload interface{}) bool {
+	log.Println("Checking if the broadcast is required or not")
+	if eventName == string(events.NEW_USER) {
+		return false 
+	}
+	var uid string 
+	if eventName == string(events.DIRECT_MESSAGE) {
+		uid = eventPayload.(core.DirectMessagePayload).UserId
+	}
+	if eventName == string(events.DISCONNECT) {
+		uid = eventPayload.(core.DisconnectPayload).UserId
+	}
 	// checks if the client(receiver) is there in the local memory hub 
 	for c := range c.Hub.Clients {
-		if c.UserId == userid {
+		if c.UserId == uid {
 			return false 
 		}
 	} 
@@ -115,7 +126,7 @@ func (c *Client) messageBroadcastRequired(userid string, eventName string, event
 /* handler function for the direct message type */
 func (c *Client) directMessageHandler(directMessagePayload core.DirectMessagePayload) {
 	// Extract out the UserId from payload to which the message needs to be sent 
-	receiver := directMessagePayload.Receiver
+	receiver := directMessagePayload.UserId
 	// creating response for the receiver 
 	response := core.DirectMessageResponse{
 		Sender: c.Username,
@@ -132,8 +143,8 @@ func (c *Client) directMessageHandler(directMessagePayload core.DirectMessagePay
 					directMessagePayload.Sender,
 				},
 				Receiver: struct{Username string; UserId string}{
-					c.getUsername(directMessagePayload.Receiver),
-					directMessagePayload.Receiver,
+					c.getUsername(directMessagePayload.UserId),
+					directMessagePayload.UserId,
 				},
 				Message: directMessagePayload.Message,
 				Time: time.Now().String(),
@@ -143,7 +154,7 @@ func (c *Client) directMessageHandler(directMessagePayload core.DirectMessagePay
 			break
 		}
 	}
-	log.Printf("There is a direct message for %v by %v", directMessagePayload.Receiver, directMessagePayload.Sender)
+	log.Printf("There is a direct message for %v by %v", directMessagePayload.UserId, directMessagePayload.Sender)
 }
 
 
@@ -166,9 +177,13 @@ func (c *Client) WritePump() {
 	}()
 	for {
 		select {
-		case message, ok := <- c.Send:
+		case message, ok := <- c.Send: 
+		log.Println("WritePump(): checking if the broadcast is required")
+			if c.MessageBroadcastRequired(string(message.EventName),string(message.EventName),message.EventPayload) {
+				return // return early if the broadcasting is required 
+			}
 			// every message will have an eventName attached to it 
-			log.Println("writePump: writing to the client", message.EventPayload)
+			log.Println("WritePump(): writing to the client", message.EventPayload)
 			// Setting a deadline to write this message to the websocket 
 			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {

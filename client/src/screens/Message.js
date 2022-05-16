@@ -23,7 +23,7 @@ const Message = () => {
   const sendMessage = () => {
     socket.sendDirectMessage({
       sender: userid,
-      receiver: selectedUser,
+      userId: selectedUser,
       message,
     });
   };

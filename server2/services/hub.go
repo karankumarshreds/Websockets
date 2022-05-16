@@ -30,10 +30,11 @@ func (h *Hub) Run() {
 		select {
 		case client := <-h.Register:
 
-			log.Println("Registering user with userid", client.UserId, "and username", client.Username)
+			log.Println("Hub.Run(): Registering user with userid", client.UserId, "and username", client.Username)
 			h.Clients[client] = true
 
 			// create a list of online users (including the new user)
+			log.Println("Hub.Run(): Creating a list of online users")
 			var onlineUsers []core.NewUserPayload
 			for c := range h.Clients {
 				onlineUsers = append(onlineUsers, core.NewUserPayload{
@@ -47,6 +48,7 @@ func (h *Hub) Run() {
 				// exclude broadcasting to the new user itself  
 				if c.UserId != client.UserId {
 					if len(FilterUser(onlineUsers, c.UserId)) > 0 {
+						log.Println("Hub.Run(): Emitting online users to everyone except the new user")
 						c.Send <- core.EventPayload{
 							EventName: events.NEW_USER,
 							// to make sure don't include userId of person to which this message will be sent 
@@ -55,7 +57,8 @@ func (h *Hub) Run() {
 					}	
 				} else { // for the newly joined user itself  
 					if len(FilterUser(onlineUsers, c.UserId)) > 0 {
-							c.Send <- core.EventPayload{
+						log.Println("Hub.Run(): Emitting the list of online users to new user")
+						c.Send <- core.EventPayload{	
 							EventName: events.NEW_USER,
 							EventPayload: FilterUser(onlineUsers, c.UserId),
 						}

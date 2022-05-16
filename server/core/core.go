@@ -8,24 +8,27 @@ type EventPayload struct {
 	EventPayload interface{} `json:"eventPayload"`
 }
 
+/************************* NOTE ***************************/
+/* Each event payload must have a unique userId property  */
+/**********************************************************/
+
 // Payload structure for new user event
 type NewUserPayload struct {
-	Username string `json:"username"`
 	UserId   string `json:"userId"`
+	Username string `json:"username"`
 }
 
 // Payload structure for direct message event
 type DirectMessagePayload struct {
+	UserId   string `json:"userId"`
 	Sender   string `json:"sender"`
-	Receiver string `json:"receiver"`
 	Message  string `json:"message"`
-	// Time     string `json:"time"`
 }
 
 // Payload structure for disconnect event 
 type DisconnectPayload struct {
+	UserId   string `json:"userId"`
 	Username string `json:"username"`
-	UserId string `json:"userId"`
 }
 
 // "Response" Payload structure for direct message
