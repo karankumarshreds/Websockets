@@ -9,10 +9,11 @@ import (
 
 type Listener struct {
 	rdb *redis.Client
+	hub *Hub
 }
 
-func NewListeners(rdb *redis.Client) *Listener {
-	return &Listener{rdb}
+func NewListeners(rdb *redis.Client, hub *Hub) *Listener {
+	return &Listener{rdb, hub}
 }
 
 func (l *Listener) DirectMessageListener() {

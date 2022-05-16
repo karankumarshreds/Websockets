@@ -66,6 +66,14 @@ func (h *Hub) Run() {
 				}
 			} 
 
+
+			// 1. the listener in each should send new user payload to the register channel 
+			// 2. each hub register logic should publish message of new user paylaod to redis after doing all the local logic 
+
+			// 1. all the local broadcast logic should run as is 
+			// 2. a new user joined event should be published via redis 
+			// 3. in the listener for NEW_USER event the same logic (1) should run 
+
 		case client := <-h.Unregister:
 			if _, ok := h.Clients[client]; ok {
 				delete(h.Clients, client)
@@ -74,6 +82,7 @@ func (h *Hub) Run() {
 		}
 	}
 }
+
 
 
 func FilterUser(users []core.NewUserPayload, userid string) []core.NewUserPayload {

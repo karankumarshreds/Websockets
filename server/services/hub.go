@@ -84,6 +84,7 @@ func (h *Hub) Run() {
 }
 
 
+
 func FilterUser(users []core.NewUserPayload, userid string) []core.NewUserPayload {
 	var filtered []core.NewUserPayload 
 		for _, user := range users {
