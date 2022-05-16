@@ -36,41 +36,12 @@ func (h *Hub) Run() {
 		select {
 		case client := <-h.Register:
 
+			/* register the user in the local hub */ 
 			log.Println("Hub.Run(): Registering user with userid", client.UserId, "and username", client.Username)
 			h.Clients[client] = true
 
-			// create a list of online users (including the new user)
-			log.Println("Hub.Run(): Creating a list of online users")
-			var onlineUsers []core.NewUserPayload
-			for c := range h.Clients {
-				onlineUsers = append(onlineUsers, core.NewUserPayload{
-					Username: c.Username,
-					UserId: c.UserId,
-				})
-			}
-
-			// all the users should be notified with the latest list of online users 
-			for c := range h.Clients {
-				// exclude broadcasting to the new user itself  
-				if c.UserId != client.UserId {
-					if len(FilterUser(onlineUsers, c.UserId)) > 0 {
-						log.Println("Hub.Run(): Emitting online users to everyone except the new user")
-						c.Send <- core.EventPayload{
-							EventName: events.NEW_USER,
-							// to make sure don't include userId of person to which this message will be sent 
-							EventPayload: FilterUser(onlineUsers, c.UserId), 
-						}
-					}	
-				} else { // for the newly joined user itself  
-					if len(FilterUser(onlineUsers, c.UserId)) > 0 {
-						log.Println("Hub.Run(): Emitting the list of online users to new user")
-						c.Send <- core.EventPayload{	
-							EventName: events.NEW_USER,
-							EventPayload: FilterUser(onlineUsers, c.UserId),
-						}
-					}
-				}
-			} 
+			/* broadcast all the local users in the server memory about the new user */
+			BroadcastLocalUsers(h, client)			
 			
 			/* Publish and inform the other server instances about the new user*/
 			p.NewUserPublisher(core.NewUserPayload{ 
@@ -84,9 +55,45 @@ func (h *Hub) Run() {
 				close(client.Send)
 			}
 		}
-	}
+	} // end of infinite loop 
 }
 
+
+// broadcast all the local users in the server memory about the new user 
+func BroadcastLocalUsers(h *Hub, client *Client) {
+	// create a list of online users (including the new user)
+	log.Println("Hub.Run(): Creating a list of online users")
+	var onlineUsers []core.NewUserPayload
+	for c := range h.Clients {
+		onlineUsers = append(onlineUsers, core.NewUserPayload{
+			Username: c.Username,
+			UserId: c.UserId,
+		})
+	}
+
+	// all the users should be notified with the latest list of online users 
+	for c := range h.Clients {
+		// exclude broadcasting to the new user itself  
+		if c.UserId != client.UserId {
+			if len(FilterUser(onlineUsers, c.UserId)) > 0 {
+				log.Println("Hub.Run(): Emitting online users to everyone except the new user")
+				c.Send <- core.EventPayload{
+					EventName: events.NEW_USER,
+					// to make sure don't include userId of person to which this message will be sent 
+					EventPayload: FilterUser(onlineUsers, c.UserId), 
+				}
+			}	
+		} else { // for the newly joined user itself  
+			if len(FilterUser(onlineUsers, c.UserId)) > 0 {
+				log.Println("Hub.Run(): Emitting the list of online users to new user")
+				c.Send <- core.EventPayload{	
+					EventName: events.NEW_USER,
+					EventPayload: FilterUser(onlineUsers, c.UserId),
+				}
+			}
+		}
+	} 
+}
 
 
 func FilterUser(users []core.NewUserPayload, userid string) []core.NewUserPayload {
