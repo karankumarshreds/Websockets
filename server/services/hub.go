@@ -41,7 +41,7 @@ func (h *Hub) Run() {
 			h.Clients[client] = true
 
 			/* broadcast all the local users in the server memory about the new user */
-			BroadcastLocalUsers(h, client)			
+			h.broadcastLocalUsers(client)			
 			
 			/* Publish and inform the other server instances about the new user*/
 			p.NewUserPublisher(core.NewUserPayload{ 
@@ -60,7 +60,7 @@ func (h *Hub) Run() {
 
 
 // broadcast all the local users in the server memory about the new user 
-func BroadcastLocalUsers(h *Hub, client *Client) {
+func (h *Hub) broadcastLocalUsers(client *Client) {
 	// create a list of online users (including the new user)
 	log.Println("Hub.Run(): Creating a list of online users")
 	var onlineUsers []core.NewUserPayload
@@ -75,20 +75,20 @@ func BroadcastLocalUsers(h *Hub, client *Client) {
 	for c := range h.Clients {
 		// exclude broadcasting to the new user itself  
 		if c.UserId != client.UserId {
-			if len(FilterUser(onlineUsers, c.UserId)) > 0 {
+			if len(filterUser(onlineUsers, c.UserId)) > 0 {
 				log.Println("Hub.Run(): Emitting online users to everyone except the new user")
 				c.Send <- core.EventPayload{
 					EventName: events.NEW_USER,
 					// to make sure don't include userId of person to which this message will be sent 
-					EventPayload: FilterUser(onlineUsers, c.UserId), 
+					EventPayload: filterUser(onlineUsers, c.UserId), 
 				}
 			}	
 		} else { // for the newly joined user itself  
-			if len(FilterUser(onlineUsers, c.UserId)) > 0 {
+			if len(filterUser(onlineUsers, c.UserId)) > 0 {
 				log.Println("Hub.Run(): Emitting the list of online users to new user")
 				c.Send <- core.EventPayload{	
 					EventName: events.NEW_USER,
-					EventPayload: FilterUser(onlineUsers, c.UserId),
+					EventPayload: filterUser(onlineUsers, c.UserId),
 				}
 			}
 		}
@@ -96,7 +96,7 @@ func BroadcastLocalUsers(h *Hub, client *Client) {
 }
 
 
-func FilterUser(users []core.NewUserPayload, userid string) []core.NewUserPayload {
+func filterUser(users []core.NewUserPayload, userid string) []core.NewUserPayload {
 	var filtered []core.NewUserPayload 
 		for _, user := range users {
 			if user.UserId != userid {
