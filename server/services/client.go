@@ -44,8 +44,6 @@ func NewClientService(
 	return &Client{ Hub,Conn,Send,UserId,Username,redisService}
 }
 
-
-
 // Pumps messages from the websocket to the hub.
 // Hub will only do one thing and that is register the user to the hub
 // This application ensures that there is at most one reader per connection 
@@ -181,7 +179,7 @@ func (c *Client) WritePump() {
 	for {
 		select {
 		case message, ok := <- c.Send: 
-		log.Println("WritePump(): checking if the broadcast is required")
+		// log.Println("WritePump(): checking if the broadcast is required")
 			// if c.MessageBroadcastRequired(string(message.EventName),string(message.EventName),message.EventPayload) {
 			// 	return // return early if the broadcasting is required 
 			// }
@@ -200,6 +198,7 @@ func (c *Client) WritePump() {
 				log.Println("WritePump(): ERROR Could not write message to client => ", err)
 				return 
 			} 
+
 			// if w, err := c.Conn.NextWriter(websocket.TextMessage); err != nil {
 			// 	return 
 			// } else {

@@ -1,6 +1,7 @@
 package services
 
 import (
+	"encoding/json"
 	"log"
 	"private-chat/core"
 	"private-chat/events"
@@ -18,9 +19,14 @@ func NewPublishers(rdb *redis.Client) *Publisher {
 
 func (p *Publisher) NewUserPublisher(payload core.NewUserPayload) {
 	log.Println("Publishing new user event via redis")
-	if err := p.rdb.Publish(string(events.NEW_USER), payload).Err(); err != nil {
-		log.Println("ERROR: Unable to publish NEW_USER event for payload", payload, err)
+	if _payload, err := json.Marshal(payload); err != nil {
+		log.Println("ERROR: Unable to marshall before publishing new user payload")
 		return 
+	} else {
+		if err := p.rdb.Publish(string(events.NEW_USER), _payload).Err(); err != nil {
+			log.Println("ERROR: Unable to publish NEW_USER event for payload", payload, err)
+			return 
+		}
 	}
 	log.Println("Event successfully published for new user")
 }

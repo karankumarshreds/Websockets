@@ -44,7 +44,6 @@ func (a *App) InitRoutes() {
 	h := handlers.NewHandlers(hubService, redisService, rdb)
 	r := mux.NewRouter()
 
-
 	r.HandleFunc("/", h.HomeHandler).Methods("GET")
 	r.HandleFunc("/ws/{userid}/{username}", h.NewWebsocketConnection)
 	r.HandleFunc("/get-chats/{userid}", h.GetAllChats).Methods("GET")
