@@ -41,11 +41,7 @@ func (a *App) InitRoutes() {
 	hubService    := services.NewHub(rdb)
 	redisService  := services.NewRedisService(rdb)
 
-	// listeners 
-	l := services.NewListeners(rdb)
-	go l.DirectMessageListener()
-
-	h := handlers.NewHandlers(hubService, redisService)
+	h := handlers.NewHandlers(hubService, redisService, rdb)
 	r := mux.NewRouter()
 
 

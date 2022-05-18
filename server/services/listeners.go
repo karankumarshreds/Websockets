@@ -17,7 +17,7 @@ func NewListeners(rdb *redis.Client, hub *Hub) *Listener {
 }
 
 func (l *Listener) DirectMessageListener() {
-	log.Println("Listening for direct messages...")
+	log.Println("Listeners.go := Listening for direct messages...")
 	s := l.rdb.Subscribe(string(events.DIRECT_MESSAGE))
 	for {
 		if msg, err := s.ReceiveMessage(); err != nil {
@@ -30,7 +30,7 @@ func (l *Listener) DirectMessageListener() {
 }
 
 func (l *Listener) NewUserListener() {
-	log.Println("Listenning for new user...")
+	log.Println("Listeners.go := Listening for new user...")
 	s := l.rdb.Subscribe(string(events.NEW_USER))
 	for {
 		if msg, err := s.ReceiveMessage(); err != nil {
@@ -41,10 +41,3 @@ func (l *Listener) NewUserListener() {
 		}
 	}
 }
-
-// move to the beginning shift + i 
-// move to the end of line A 
-// delete word at cursor daw
-// delete word at cursor and edit mode caw 
-// select word at cursor viw
-

@@ -33,6 +33,7 @@ type DisconnectPayload struct {
 
 // "Response" Payload structure for direct message
 type DirectMessageResponse struct {
+	UserId string `json:"userId"`
 	Message string `json:"message"`
 	Sender string `json:"sender"`
 	Time string `json:"time"`

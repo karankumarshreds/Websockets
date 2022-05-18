@@ -8,6 +8,8 @@ import (
 	"private-chat/middlewares"
 	"private-chat/services"
 
+	"github.com/go-redis/redis"
+
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 )
@@ -15,6 +17,7 @@ import (
 type Handlers struct {
 	hub *services.Hub
 	redisService *services.RedisService
+	rdb *redis.Client
 }
 
 var upgrader websocket.Upgrader = websocket.Upgrader{
@@ -23,8 +26,8 @@ var upgrader websocket.Upgrader = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {return true},
 }
 
-func NewHandlers(hub *services.Hub, redisService *services.RedisService) *Handlers {
-	return &Handlers{hub, redisService}
+func NewHandlers(hub *services.Hub, redisService *services.RedisService, rdb *redis.Client) *Handlers {
+	return &Handlers{hub, redisService, rdb}
 }
 
 func (h *Handlers) HomeHandler(w http.ResponseWriter, r *http.Request) {
@@ -58,6 +61,11 @@ func (h *Handlers) NewWebsocketConnection(w http.ResponseWriter, r *http.Request
 
 	go client.ReadPump()
 	go client.WritePump()
+
+	/* start listening for external messages */
+	l := services.NewListeners(h.rdb, h.hub)
+	go l.NewUserListener()
+	go l.DirectMessageListener()
 	
 }
 

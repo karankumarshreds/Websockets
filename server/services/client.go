@@ -100,9 +100,11 @@ func (c *Client) MessageBroadcastRequired(userid string, eventName string, event
 	}
 	var uid string 
 	if eventName == string(events.DIRECT_MESSAGE) {
+		log.Printf("BroadcastCheck => eventName : %v", eventName)
 		uid = eventPayload.(core.DirectMessagePayload).UserId
 	}
 	if eventName == string(events.DISCONNECT) {
+		log.Printf("BroadcastCheck => eventName : %v", eventName)
 		uid = eventPayload.(core.DisconnectPayload).UserId
 	}
 	// checks if the client(receiver) is there in the local memory hub 
@@ -129,6 +131,7 @@ func (c *Client) directMessageHandler(directMessagePayload core.DirectMessagePay
 	receiver := directMessagePayload.UserId
 	// creating response for the receiver 
 	response := core.DirectMessageResponse{
+		UserId: directMessagePayload.UserId,
 		Sender: c.Username,
 		Message: directMessagePayload.Message,
 		Time: time.Now().String(),
@@ -179,9 +182,9 @@ func (c *Client) WritePump() {
 		select {
 		case message, ok := <- c.Send: 
 		log.Println("WritePump(): checking if the broadcast is required")
-			if c.MessageBroadcastRequired(string(message.EventName),string(message.EventName),message.EventPayload) {
-				return // return early if the broadcasting is required 
-			}
+			// if c.MessageBroadcastRequired(string(message.EventName),string(message.EventName),message.EventPayload) {
+			// 	return // return early if the broadcasting is required 
+			// }
 			// every message will have an eventName attached to it 
 			log.Println("WritePump(): writing to the client", message.EventPayload)
 			// Setting a deadline to write this message to the websocket 

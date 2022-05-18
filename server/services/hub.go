@@ -27,9 +27,12 @@ func NewHub(rdb *redis.Client) *Hub {
 // Run acts like an interface between the readPump and writePump and updates Hub map
 func (h *Hub) Run() {
 
-	/* start listening for new users from redis as well */
+	log.Println("Creating a readpump for the new user")
+
+	/* start listening for external messages */
 	l := NewListeners(h.rdb, h)
-	l.NewUserListener()
+	go l.NewUserListener()
+	go l.DirectMessageListener()
 	p := NewPublishers(h.rdb)
 	
 	for { // infinite loop
