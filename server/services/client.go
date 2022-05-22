@@ -194,8 +194,11 @@ func (c *Client) WritePump() {
 
 			if err := c.Conn.WriteJSON(message); err == nil {
 				log.Println("WritePump(): message write to client successful", message)	
+			} else if !websocket.IsUnexpectedCloseError(err,   websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+				log.Println("WritePump(): ERROR: connection closed from client", err)
+				return
 			} else {
-				log.Println("WritePump(): ERROR Could not write message to client => ", err)
+				log.Println("WritePump(): ERROR Unexpected error ", err)
 				return 
 			} 
 

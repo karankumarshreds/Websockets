@@ -51,7 +51,7 @@ func (h *Hub) Run() {
 			/* register the user in the local hub */ 
 			log.Println("Hub.Run(): Registering user with userid", client.UserId, "and username", client.Username)
 			h.Clients[client] = true
-			
+
 			h.BroadcastLocalUsers(client.UserId)	
 			newUserPayload := core.NewUserPayload{UserId: client.UserId,Username: client.Username}
 			h.UpdateRedisOnlineUsers(newUserPayload)		
@@ -67,6 +67,23 @@ func (h *Hub) Run() {
 }
 
 func (h *Hub) UpdateRedisOnlineUsers(newuser core.NewUserPayload) {
+
+	// TODO you have to merge the list of online users 
+	// create a map of online users 
+	log.Println("Creating a map of online users")
+	var onlineUsersMap map[string]core.NewUserPayload = make(map[string]core.NewUserPayload)
+	onlineUsersMap[newuser.UserId] = newuser
+	log.Println("Marshalling the map of online users")
+	if onlineUsersMapMarshalled, marshalErr := json.Marshal(onlineUsersMap); marshalErr != nil {
+		log.Println("ERROR: Unable to marshal the map of online users")
+		return
+	} else {
+		if err := h.rdb.Set(REDIS_KEYS.online_users_map, onlineUsersMapMarshalled,0).Err(); err != nil {
+			log.Println("Unable to create redis user map", err)
+			return
+		}
+	}
+
 	log.Println("Updating the redis list of online users")
 	var onlineUsers []core.NewUserPayload = []core.NewUserPayload{}
 	for c := range h.Clients {
@@ -92,6 +109,9 @@ func (h *Hub) UpdateRedisOnlineUsers(newuser core.NewUserPayload) {
 
 // broadcast all the local users in the server memory about the new user 
 func (h *Hub) BroadcastLocalUsers(userid string) {
+
+	
+
 	// create a list of online users (including the new user)
 	log.Println("Hub.Run(): Creating a list of online users")
 	var onlineUsers []core.NewUserPayload
@@ -101,6 +121,8 @@ func (h *Hub) BroadcastLocalUsers(userid string) {
 			UserId: c.UserId,
 		})
 	}
+
+	// TODO you have to merge the list of online users 
 
 	// all the users should be notified with the latest list of online users 
 	for c := range h.Clients {
