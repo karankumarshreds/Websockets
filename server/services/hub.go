@@ -1,6 +1,7 @@
 package services
 
 import (
+	"encoding/json"
 	"log"
 	"private-chat/core"
 	"private-chat/events"
@@ -26,9 +27,7 @@ func NewHub(rdb *redis.Client) *Hub {
 
 // Run acts like an interface between the readPump and writePump and updates Hub map
 func (h *Hub) Run() {
-
 	log.Println("Creating a readpump for the new user")
-
 	/* start listening for external messages */
 	l := NewListeners(h.rdb, h)
 	go l.NewUserListener()
@@ -39,18 +38,24 @@ func (h *Hub) Run() {
 		select {
 		case client := <-h.Register:
 
+
+
+			/**
+				## user joins to a serverA via hub
+				-> create a new list of online users 
+				-> broadcast all the local users 
+				-> publish a message with new user event and payload 
+			**/
+
+
 			/* register the user in the local hub */ 
 			log.Println("Hub.Run(): Registering user with userid", client.UserId, "and username", client.Username)
 			h.Clients[client] = true
-
-			/* broadcast all the local users in the server memory about the new user */
-			h.BroadcastLocalUsers(client.UserId)			
 			
-			/* Publish and inform the other server instances about the new user*/
-			p.NewUserPublisher(core.NewUserPayload{ 
-				UserId: client.UserId,
-				Username: client.Username,	
-			})
+			h.BroadcastLocalUsers(client.UserId)	
+			newUserPayload := core.NewUserPayload{UserId: client.UserId,Username: client.Username}
+			h.UpdateRedisOnlineUsers(newUserPayload)		
+			p.NewUserPublisher(newUserPayload)
 
 		case client := <-h.Unregister:
 			if _, ok := h.Clients[client]; ok {
@@ -61,6 +66,29 @@ func (h *Hub) Run() {
 	} // end of infinite loop 
 }
 
+func (h *Hub) UpdateRedisOnlineUsers(newuser core.NewUserPayload) {
+	log.Println("Updating the redis list of online users")
+	var onlineUsers []core.NewUserPayload = []core.NewUserPayload{}
+	for c := range h.Clients {
+		onlineUsers = append(onlineUsers, core.NewUserPayload{
+			Username: c.Username,
+			UserId: c.UserId,
+		})
+	}
+	onlineUsers = append(
+		onlineUsers, 
+		core.NewUserPayload{Username: newuser.Username, UserId: newuser.UserId},
+	)
+	if onlineUsersMarshalled, marshalErr := json.Marshal(onlineUsers); marshalErr != nil {
+		log.Println("ERROR: Unable to marhshal list of online users", marshalErr) 
+		return 
+	} else {
+		if rdbErr := h.rdb.Set(REDIS_KEYS.online_users, onlineUsersMarshalled, 0).Err(); rdbErr != nil {
+			log.Println("ERROR: Unable to save online users list on redis", rdbErr)
+			return
+		}
+	}
+}
 
 // broadcast all the local users in the server memory about the new user 
 func (h *Hub) BroadcastLocalUsers(userid string) {
@@ -94,6 +122,11 @@ func (h *Hub) BroadcastLocalUsers(userid string) {
 				c.Send <- core.EventPayload{	
 					EventName: events.NEW_USER,
 					EventPayload: h.FilterUser(onlineUsers, c.UserId),
+				}
+			} else {
+				c.Send <- core.EventPayload{
+					EventName: events.NEW_USER,
+					EventPayload: []interface{}{},
 				}
 			}
 		}

@@ -45,29 +45,33 @@ func (l *Listener) NewUserListener() {
 				log.Println("ERROR: Unable to unmarshal received message from redis listener", unmarshalErr)
 				return 
 			} else {
-				isLocalUser := true 
+
+				// make sure the user is not local (make sure the event was not published by us) 
+				isLocalUser := false 
+				log.Println("Checking for possibility of a local user")
 				for c := range l.hub.Clients {
 					if c.UserId == newUserPayload.UserId {
-						isLocalUser = false
+						isLocalUser = true
 						break
 					}
 
 				}
 				if isLocalUser {
-					// create a new client using the incoming payload 
-					// we don't have to register this user as it is already register with some other server 
-					var onlineUsers []core.NewUserPayload = []core.NewUserPayload{}
-					for c := range l.hub.Clients {
-						onlineUsers = append(onlineUsers, core.NewUserPayload{
-							Username: c.Username,
-							UserId: c.UserId,
-						})
-					}
-					onlineUsers = append(
-						onlineUsers, 
-						core.NewUserPayload{Username: newUserPayload.Username, UserId: newUserPayload.UserId},
-					)
-					log.Println("Broadcasting to local users after receiving NEW_USER event to", onlineUsers)
+					log.Println("The user is local, redis event publish not required")
+					return
+				}
+				// as soon as we get an event of new user, we fetch the latest list of the online users from redis 
+				log.Println("A new user joined another server, getting new list of online users from redis")
+				if data, rdbErr := l.rdb.Get(REDIS_KEYS.online_users).Result(); rdbErr != nil {
+					log.Println("ERROR: Unable to get list of the online users from redis", rdbErr)
+					return
+				} else {
+					var onlineUsers []core.NewUserPayload
+					if err := json.Unmarshal([]byte(data), &onlineUsers); err != nil {
+						log.Println("Unable to Unmarshal the list of online users")
+						return 
+					} 
+					// socket send all the local users with the updated list of users 
 					for c := range l.hub.Clients {
 						c.Send <- core.EventPayload{
 							EventName: events.NEW_USER,
@@ -75,12 +79,8 @@ func (l *Listener) NewUserListener() {
 							EventPayload: l.hub.FilterUser(onlineUsers, c.UserId), 
 						}
 					}
-					
-				} else {
-					log.Println("Broadcast not required as the user is local")
 				}
-				
-				
+				return // end of new logic 
 			}
 		}
 	}
