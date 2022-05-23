@@ -2,6 +2,7 @@ package services
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"private-chat/core"
 	"private-chat/events"
@@ -37,9 +38,6 @@ func (h *Hub) Run() {
 	for { // infinite loop
 		select {
 		case client := <-h.Register:
-
-
-
 			/**
 				## user joins to a serverA via hub
 				-> create a new list of online users 
@@ -52,11 +50,12 @@ func (h *Hub) Run() {
 			log.Println("Hub.Run(): Registering user with userid", client.UserId, "and username", client.Username)
 			h.Clients[client] = true
 
-			h.BroadcastLocalUsers(client.UserId)	
 			newUserPayload := core.NewUserPayload{UserId: client.UserId,Username: client.Username}
-			h.UpdateRedisOnlineUsers(newUserPayload)		
-			p.NewUserPublisher(newUserPayload)
-
+			onlineUsers := h.UpdateRedisOnlineUsers(newUserPayload)		
+			if onlineUsers != nil {
+				h.BroadcastLocalUsers(client.UserId, *onlineUsers)	
+				p.NewUserPublisher(newUserPayload)
+			}
 		case client := <-h.Unregister:
 			if _, ok := h.Clients[client]; ok {
 				delete(h.Clients, client)
@@ -66,61 +65,73 @@ func (h *Hub) Run() {
 	} // end of infinite loop 
 }
 
-func (h *Hub) UpdateRedisOnlineUsers(newuser core.NewUserPayload) {
+func (h *Hub) UpdateRedisOnlineUsers(newuser core.NewUserPayload) *[]core.NewUserPayload {
 
 	// TODO you have to merge the list of online users 
 	// create a map of online users 
 	log.Println("Creating a map of online users")
-	var onlineUsersMap map[string]core.NewUserPayload = make(map[string]core.NewUserPayload)
-	onlineUsersMap[newuser.UserId] = newuser
+	var onlineUsersMap map[string]core.NewUserPayload 
+
+	// get the already existing map and update it and then save it 
+	onlineUsersRedisMap, redisErr := h.rdb.Get(REDIS_KEYS.online_users_map).Result(); 
+
+	if errors.Is(redisErr, redis.Nil) {
+		log.Println("Redis online users map not found, creating one")
+		onlineUsersMap[newuser.UserId] = newuser;
+	} else if redisErr != nil  {
+		log.Println("Cannot load the online users map from redis", redisErr)
+		return nil
+	} else { 
+		if err := json.Unmarshal([]byte(onlineUsersRedisMap), &onlineUsersMap); err != nil {
+			log.Println("Unable to unmarshal the online users from redis", err)
+			return nil
+		}
+		// if all good, merge the state with new user payload 
+		onlineUsersMap[newuser.UserId] = newuser;
+	}
+	
 	log.Println("Marshalling the map of online users")
 	if onlineUsersMapMarshalled, marshalErr := json.Marshal(onlineUsersMap); marshalErr != nil {
 		log.Println("ERROR: Unable to marshal the map of online users")
-		return
+		return nil
 	} else {
 		if err := h.rdb.Set(REDIS_KEYS.online_users_map, onlineUsersMapMarshalled,0).Err(); err != nil {
 			log.Println("Unable to create redis user map", err)
-			return
+			return nil
 		}
 	}
+	
 
 	log.Println("Updating the redis list of online users")
 	var onlineUsers []core.NewUserPayload = []core.NewUserPayload{}
-	for c := range h.Clients {
-		onlineUsers = append(onlineUsers, core.NewUserPayload{
-			Username: c.Username,
-			UserId: c.UserId,
-		})
+	for _, userData := range onlineUsersMap {
+		onlineUsers = append(onlineUsers, userData)
 	}
-	onlineUsers = append(
-		onlineUsers, 
-		core.NewUserPayload{Username: newuser.Username, UserId: newuser.UserId},
-	)
+
 	if onlineUsersMarshalled, marshalErr := json.Marshal(onlineUsers); marshalErr != nil {
 		log.Println("ERROR: Unable to marhshal list of online users", marshalErr) 
-		return 
+		return nil
 	} else {
 		if rdbErr := h.rdb.Set(REDIS_KEYS.online_users, onlineUsersMarshalled, 0).Err(); rdbErr != nil {
 			log.Println("ERROR: Unable to save online users list on redis", rdbErr)
-			return
+			return nil
 		}
 	}
+	return &onlineUsers
 }
 
-// broadcast all the local users in the server memory about the new user 
-func (h *Hub) BroadcastLocalUsers(userid string) {
 
-	
+func (h *Hub) BroadcastLocalUsers(userid string, onlineUsers []core.NewUserPayload) {
 
 	// create a list of online users (including the new user)
 	log.Println("Hub.Run(): Creating a list of online users")
-	var onlineUsers []core.NewUserPayload
-	for c := range h.Clients {
-		onlineUsers = append(onlineUsers, core.NewUserPayload{
-			Username: c.Username,
-			UserId: c.UserId,
-		})
-	}
+	// var onlineUsers []core.NewUserPayload
+	// for c := range h.Clients {
+	// 	onlineUsers = append(onlineUsers, core.NewUserPayload{
+	// 		Username: c.Username,
+	// 		UserId: c.UserId,
+	// 	})
+	// }
 
 	// TODO you have to merge the list of online users 
 
