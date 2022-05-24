@@ -77,6 +77,7 @@ func (h *Hub) UpdateRedisOnlineUsers(newuser core.NewUserPayload) *[]core.NewUse
 
 	if errors.Is(redisErr, redis.Nil) {
 		log.Println("Redis online users map not found, creating one")
+		onlineUsersMap = make(map[string]core.NewUserPayload)
 		onlineUsersMap[newuser.UserId] = newuser;
 	} else if redisErr != nil  {
 		log.Println("Cannot load the online users map from redis", redisErr)

@@ -26,8 +26,11 @@ func (p *Publisher) NewUserPublisher(payload core.NewUserPayload) {
 		if err := p.rdb.Publish(string(events.NEW_USER), _payload).Err(); err != nil {
 			log.Println("ERROR: Unable to publish NEW_USER event for payload", payload, err)
 			return 
+		} else {
+			log.Println("Event successfully published for new user")
 		}
 	}
-	log.Println("Event successfully published for new user")
+	
 }
+
 
