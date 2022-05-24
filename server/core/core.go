@@ -38,3 +38,8 @@ type DirectMessageResponse struct {
 	Sender string `json:"sender"`
 	Time string `json:"time"`
 }
+
+// REDIS RELATED 
+
+// key denotes the userid 
+type OnlineUsersRedisMap map[string]NewUserPayload 

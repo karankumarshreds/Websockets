@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"private-chat/core"
 	"private-chat/utils"
 	"strconv"
 
@@ -116,6 +117,33 @@ func (r *RedisService) PushMessageToChatList(msg SaveMessageArg) {
 	}
 }
 
+func (r *RedisService) RemoveUserFromOnlineMap(userId string) error {
+	log.Println("Cleaning up user from the redis map")
+	var onlineUsersRedisMap core.OnlineUsersRedisMap
+	data, err := r.rdb.Get(REDIS_KEYS.online_users_map).Result()
+	if err != nil {
+		log.Println("Unable to fetch online users map from redis", err)
+		return err
+	}
+	if err := json.Unmarshal([]byte(data), &onlineUsersRedisMap); err != nil {
+		log.Println("Unable to unmarshal online users map from redis", err)
+		return err
+	}
+	delete(onlineUsersRedisMap, userId)
+	log.Println("Deleted the user from the map, updating redis map again")
+	marshalledMap, err := json.Marshal(onlineUsersRedisMap)
+	if err != nil {
+		log.Println("Unable to marshal the updated map of users", err)
+		return err
+	} else {
+		if err := r.rdb.Set(REDIS_KEYS.online_users_map,marshalledMap,0).Err(); err != nil {
+			log.Println("unable to set updated map on redis after deleting user", err)
+			return err 
+		} 
+	}
+	return nil
+}
+
 func CreateKeyCombination(fromUser string, toUser string) string {
 	rr, _ := strconv.Atoi(fromUser)
 	sr, _ := strconv.Atoi(toUser)	
@@ -125,4 +153,5 @@ func CreateKeyCombination(fromUser string, toUser string) string {
 		return fmt.Sprintf("%v.%v", sr, rr)	
 	}
 }
+
 

@@ -70,7 +70,7 @@ func (h *Hub) UpdateRedisOnlineUsers(newuser core.NewUserPayload) *[]core.NewUse
 	// TODO you have to merge the list of online users 
 	// create a map of online users 
 	log.Println("Creating a map of online users")
-	var onlineUsersMap map[string]core.NewUserPayload 
+	var onlineUsersMap core.OnlineUsersRedisMap 
 
 	// get the already existing map and update it and then save it 
 	onlineUsersRedisMap, redisErr := h.rdb.Get(REDIS_KEYS.online_users_map).Result(); 
