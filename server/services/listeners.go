@@ -27,8 +27,28 @@ func (l *Listener) DirectMessageListener() {
 		if msg, err := s.ReceiveMessage(); err != nil {
 			log.Println("ERROR: Error receiving message for the event name", events.DIRECT_MESSAGE, err)
 		} else {
-			// var directMessagePayload core.DirectMessagePayload
-			log.Printf("Received the message: %v for event: %v", msg.String(), msg.Channel)
+			utils.CustomLogger("Received the message: %v for event: %v", msg.String(), msg.Channel)
+			var directMessagePayload core.DirectMessagePayload
+			// check if the receiver is in the list of online users 
+			// if yes then send the message to the receiver 
+			if err := json.Unmarshal([]byte(msg.Payload), &directMessagePayload); err != nil {
+				utils.CustomLogger("Unable to unmarshal the DIRECT_MESSAGE payload", err)
+				return
+			}
+			utils.CustomLogger("Unmarshal successful, sending the message the receiver", directMessagePayload.UserId)
+			for client := range l.hub.Clients {
+				if client.UserId == directMessagePayload.UserId {
+					if err := client.Conn.WriteJSON(core.EventPayload{
+						EventName: events.DIRECT_MESSAGE,
+						EventPayload: directMessagePayload,
+					}); err != nil {
+						utils.CustomLogger("ERROR: Unable to send message to the receiver", err)
+						return
+					} else {
+						utils.CustomLogger("Message successfully sent to", client.UserId)
+					}
+				}
+			}
 		}
 	}
 }

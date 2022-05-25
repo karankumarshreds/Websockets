@@ -6,7 +6,7 @@ import (
 )
 
 // Original from https://stackoverflow.com/a/25927915/1490379
-func CustomLogger(msgs ...string) {
+func CustomLogger(msgs ...interface{}) {
 	pc := make([]uintptr, 10) // at least 1 entry needed
 	runtime.Callers(2, pc)
 	f := runtime.FuncForPC(pc[0])
