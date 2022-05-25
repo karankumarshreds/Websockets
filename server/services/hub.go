@@ -15,14 +15,16 @@ type Hub struct {
 	Register   chan *Client
 	Unregister chan *Client
 	rdb *redis.Client
+	redisService *RedisService
 }
 
-func NewHub(rdb *redis.Client) *Hub {
+func NewHub(rdb *redis.Client, redisService *RedisService) *Hub {
 	return &Hub{
 		Clients:    map[*Client]bool{},
 		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
 		rdb: rdb,
+		redisService: redisService,
 	}
 }
 
@@ -30,7 +32,7 @@ func NewHub(rdb *redis.Client) *Hub {
 func (h *Hub) Run() {
 	log.Println("Creating a readpump for the new user")
 	/* start listening for external messages */
-	l := NewListeners(h.rdb, h)
+	l := NewListeners(h.rdb, h, h.redisService)
 	go l.NewUserListener()
 	go l.DirectMessageListener()
 	p := NewPublishers(h.rdb)

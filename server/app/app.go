@@ -38,8 +38,8 @@ func (a *App) InitRoutes() {
 		password: "",
 	})
 	
-	hubService    := services.NewHub(rdb)
 	redisService  := services.NewRedisService(rdb)
+	hubService    := services.NewHub(rdb,redisService)
 
 	h := handlers.NewHandlers(hubService, redisService, rdb)
 	r := mux.NewRouter()

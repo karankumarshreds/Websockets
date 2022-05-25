@@ -44,7 +44,7 @@ func (h *Handlers) NewWebsocketConnection(w http.ResponseWriter, r *http.Request
 		log.Println("Cannot upgrade the http request to websocket", err)
 		return 
 	}
-
+	publishers := services.NewPublishers(h.rdb)
 	log.Println("Creating a new websocket connection for user", userid)
 	// Creating a new user struct
 	client := services.NewClientService(
@@ -54,6 +54,7 @@ func (h *Handlers) NewWebsocketConnection(w http.ResponseWriter, r *http.Request
 		userid, 
 		username, 
 		h.redisService,
+		publishers,
 	)
 
 	// Registering the user to the hub
@@ -63,7 +64,7 @@ func (h *Handlers) NewWebsocketConnection(w http.ResponseWriter, r *http.Request
 	go client.WritePump()
 
 	/* start listening for external messages */
-	l := services.NewListeners(h.rdb, h.hub)
+	l := services.NewListeners(h.rdb, h.hub, h.redisService)
 	go l.NewUserListener()
 	go l.DirectMessageListener()
 	

@@ -19,6 +19,7 @@ type Client struct {
 	Username string 
 	// rdb *redis.Client
 	redisService *RedisService
+	publishers *Publisher
 }
 
 
@@ -40,8 +41,9 @@ func NewClientService(
 	UserId string,
 	Username string ,
 	redisService *RedisService,
+	publisher *Publisher,
 ) *Client{
-	return &Client{ Hub,Conn,Send,UserId,Username,redisService}
+	return &Client{ Hub,Conn,Send,UserId,Username,redisService,publisher}
 }
 
 // Pumps messages from the websocket to the hub.
@@ -196,6 +198,9 @@ func (c *Client) WritePump() {
 				log.Println("WritePump(): message write to client successful", message)	
 			} else if !websocket.IsUnexpectedCloseError(err,   websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Println("WritePump(): ERROR: connection closed from client", err)
+				log.Println("User connection ended by userid :", c.UserId)
+				c.redisService.RemoveUserFromOnlineMap(c.UserId)
+				c.publishers.UserDeletedPublisher()
 				return
 			} else {
 				log.Println("WritePump(): ERROR Unexpected error ", err)

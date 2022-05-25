@@ -119,17 +119,11 @@ func (r *RedisService) PushMessageToChatList(msg SaveMessageArg) {
 
 func (r *RedisService) RemoveUserFromOnlineMap(userId string) error {
 	log.Println("Cleaning up user from the redis map")
-	var onlineUsersRedisMap core.OnlineUsersRedisMap
-	data, err := r.rdb.Get(REDIS_KEYS.online_users_map).Result()
+	onlineUsersRedisMap, err := r.GetOnlineUsersRedisMap()
 	if err != nil {
-		log.Println("Unable to fetch online users map from redis", err)
 		return err
 	}
-	if err := json.Unmarshal([]byte(data), &onlineUsersRedisMap); err != nil {
-		log.Println("Unable to unmarshal online users map from redis", err)
-		return err
-	}
-	delete(onlineUsersRedisMap, userId)
+	// delete(onlineUsersRedisMap, userId)
 	log.Println("Deleted the user from the map, updating redis map again")
 	marshalledMap, err := json.Marshal(onlineUsersRedisMap)
 	if err != nil {
@@ -142,6 +136,20 @@ func (r *RedisService) RemoveUserFromOnlineMap(userId string) error {
 		} 
 	}
 	return nil
+}
+
+func (r *RedisService) GetOnlineUsersRedisMap() (core.OnlineUsersRedisMap, error) {
+	var onlineUsersRedisMap core.OnlineUsersRedisMap
+	data, err := r.rdb.Get(REDIS_KEYS.online_users_map).Result()
+	if err != nil {
+		log.Println("Unable to fetch online users map from redis", err)
+		return nil, err
+	}
+	if err := json.Unmarshal([]byte(data), &onlineUsersRedisMap); err != nil {
+		log.Println("Unable to unmarshal online users map from redis", err)
+		return nil, err
+	}
+	return onlineUsersRedisMap, nil
 }
 
 func CreateKeyCombination(fromUser string, toUser string) string {

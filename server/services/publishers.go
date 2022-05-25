@@ -17,6 +17,9 @@ func NewPublishers(rdb *redis.Client) *Publisher {
 	return &Publisher{rdb}
 }
 
+// TODO you do not need to tell which user has left 
+// the event is enough as the listeners will fetch the latest 
+// list of the users from the redis map automatically anyways 
 func (p *Publisher) NewUserPublisher(payload core.NewUserPayload) {
 	log.Println("Publishing new user event via redis")
 	if _payload, err := json.Marshal(payload); err != nil {
@@ -33,4 +36,13 @@ func (p *Publisher) NewUserPublisher(payload core.NewUserPayload) {
 	
 }
 
+func (p *Publisher) UserDeletedPublisher() {
+	log.Println("Publishing user deleted publisher via redis")
+	if err := p.rdb.Publish(string(events.DELETED_USER), nil).Err(); err != nil {
+		log.Println("ERROR: Unable to DELETED_USER event", err)
+		return
+	} else {
+		log.Println("Event successfully published for deleted user")
+	}
+}
 
